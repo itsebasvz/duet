@@ -51,10 +51,12 @@ const getServerKey = (server: ProviderMcpServer): string => (
   `${server.provider}:${server.scope}:${server.workspacePath || 'global'}:${server.name}`
 );
 
-// Servers prefixed with `cloudcli-` are written and removed automatically by a
+// Servers prefixed with `duet-` are written and removed automatically by a
 // duet feature toggle (e.g. the Browser tab), not added by the user. They are
 // shown read-only so users don't edit/delete them out of sync with the feature.
-const isManagedServer = (server: ProviderMcpServer): boolean => server.name.startsWith('cloudcli-');
+// `cloudcli-` is the legacy prefix kept so pre-rename managed servers stay hidden.
+const isManagedServer = (server: ProviderMcpServer): boolean =>
+  server.name.startsWith('duet-') || server.name.startsWith('cloudcli-');
 
 function ConfigLine({ label, children }: { label: string; children: string }) {
   if (!children) {

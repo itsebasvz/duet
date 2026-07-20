@@ -81,8 +81,8 @@ const DEFAULT_SETTINGS: BrowserUseSettings = {
 };
 const AGENT_OWNER_ID = 'agent';
 const PROFILE_ROOT = path.join(os.homedir(), '.cloudcli', 'browser-use', 'profiles');
-const MCP_SERVER_NAME = 'cloudcli-browser';
-const LEGACY_MCP_SERVER_NAMES = ['cloudcli-browser-use'];
+const MCP_SERVER_NAME = 'duet-browser';
+const LEGACY_MCP_SERVER_NAMES = ['cloudcli-browser', 'cloudcli-browser-use'];
 const RUNTIME_READINESS_CACHE_TTL_MS = 30_000;
 
 function getRuntime(): BrowserUseRuntime {
@@ -160,7 +160,7 @@ function getMcpCommand(): { command: string; args: string[] } {
   }
 
   return {
-    command: 'cloudcli',
+    command: 'duet',
     args: ['browser-use-mcp'],
   };
 }
@@ -291,7 +291,7 @@ function runCommand(command: string, args: string[]): Promise<void> {
 function formatInstallError(error: unknown): string {
   const message = error instanceof Error ? error.message : String(error);
   if (message.includes('sudo') && message.includes('password')) {
-    return 'Installing Chromium system dependencies requires administrator privileges. Run `npx playwright install-deps chromium` on the machine where CloudCLI runs, then try again.';
+    return 'Installing Chromium system dependencies requires administrator privileges. Run `npx playwright install-deps chromium` on the machine where duet runs, then try again.';
   }
   return message || 'Failed to install Browser runtime.';
 }

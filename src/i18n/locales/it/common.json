@@ -246,7 +246,7 @@
     "viewFullRelease": "Vedi release completa",
     "updateProgress": "Progresso aggiornamento:",
     "manualUpgrade": "Aggiornamento manuale:",
-    "npmUpgradeCommand": "npm install -g @cloudcli-ai/cloudcli@latest",
+    "npmUpgradeCommand": "git pull && npm install",
     "manualUpgradeHint": "Oppure clicca \"Aggiorna ora\" per eseguire l'aggiornamento automaticamente.",
     "updateCompleted": "Aggiornamento completato con successo!",
     "restartServer": "Riavvia il server per applicare le modifiche.",

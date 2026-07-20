@@ -478,7 +478,7 @@ test('OpenCode synchronizer titles app-created sessions from the first user mess
 
   try {
     // Stored title differs from the first message so we can prove the first
-    // message wins for sessions started from cloudcli.
+    // message wins for sessions started from duet.
     await seedOpenCodeSession(tempRoot, workspacePath, {
       sessionId: 'oc-app-1',
       title: 'OpenCode generated title',

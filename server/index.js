@@ -252,12 +252,12 @@ app.post('/api/system/update', authenticateToken, async (req, res) => {
         console.log('Starting system update from directory:', projectRoot);
 
         // Platform deployments use their own update workflow from the project root.
+        // duet is a self-hosted git fork (not an npm package), so updates always
+        // come from the repo — never `npm install -g` of upstream.
         const updateCommand = IS_PLATFORM
         // In platform, husky and dev dependencies are not needed
             ? 'npm run update:platform'
-            : installMode === 'git'
-                ? 'git checkout main && git pull && npm install'
-                : 'npm install -g @cloudcli-ai/cloudcli@latest';
+            : 'git checkout main && git pull && npm install';
 
         const updateCwd = IS_PLATFORM || installMode === 'git'
             ? projectRoot
@@ -1603,12 +1603,12 @@ async function startServer() {
 
             console.log('');
             console.log(c.dim('═'.repeat(63)));
-            console.log(`  ${c.bright('CloudCLI Server - Ready')}`);
+            console.log(`  ${c.bright('duet Server - Ready')}`);
             console.log(c.dim('═'.repeat(63)));
             console.log('');
             console.log(`${c.info('[INFO]')} Server URL:  ${c.bright('http://' + DISPLAY_HOST + ':' + SERVER_PORT)}`);
             console.log(`${c.info('[INFO]')} Installed at: ${c.dim(appInstallPath)}`);
-            console.log(`${c.tip('[TIP]')}  Run "cloudcli status" for full configuration details`);
+            console.log(`${c.tip('[TIP]')}  Run "duet status" for full configuration details`);
             console.log('');
 
             // Start watching the projects folder for changes

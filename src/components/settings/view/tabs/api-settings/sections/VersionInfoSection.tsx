@@ -1,6 +1,6 @@
 import { MessageSquare } from 'lucide-react';
 
-import { CLOUDCLI_WORDMARK_FONT_FAMILY } from '../../../../../../constants/branding';
+import { DUET_WORDMARK_FONT_FAMILY } from '../../../../../../constants/branding';
 
 type VersionInfoSectionProps = {
   currentVersion: string;
@@ -17,7 +17,7 @@ export default function VersionInfoSection({ currentVersion }: VersionInfoSectio
           <div className="flex items-center gap-2">
             <span
               className="text-sm font-semibold text-foreground"
-              style={{ fontFamily: CLOUDCLI_WORDMARK_FONT_FAMILY }}
+              style={{ fontFamily: DUET_WORDMARK_FONT_FAMILY }}
             >
               duet
             </span>
