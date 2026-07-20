@@ -95,11 +95,11 @@ const MessageComponent = memo(({ message, prevMessage, createDiff, onFileOpen, s
               />
             )}
             {userCopyContent.trim().length > 0 || !message.images?.length ? (
-              <div className="group max-w-full rounded-2xl rounded-br-md bg-blue-600 px-3 py-2 text-white shadow-sm sm:px-4">
+              <div className="group max-w-full rounded-2xl rounded-br-md bg-secondary px-3 py-2 text-foreground shadow-sm sm:px-4">
                 <div dir="auto" className="whitespace-pre-wrap break-words font-serif text-sm">
                   {message.content}
                 </div>
-                <div className="mt-1 flex items-center justify-end gap-1 text-xs text-blue-100">
+                <div className="mt-1 flex items-center justify-end gap-1 text-xs text-muted-foreground">
                   {shouldShowUserCopyControl && (
                     <MessageCopyControl content={userCopyContent} messageType="user" />
                   )}
@@ -114,7 +114,7 @@ const MessageComponent = memo(({ message, prevMessage, createDiff, onFileOpen, s
             )}
           </div>
           {!isGrouped && (
-            <div className="hidden h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-blue-600 text-sm text-white sm:flex">
+            <div className="hidden h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-secondary text-sm text-foreground sm:flex">
               U
             </div>
           )}

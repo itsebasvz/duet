@@ -1,11 +1,11 @@
 {
-  "name": "CloudCLI UI",
-  "short_name": "CloudCLI UI",
-  "description": "CloudCLI UI web application",
+  "name": "duet",
+  "short_name": "duet",
+  "description": "Orquestador Claude Code + workers CLI, con supervisión web en vivo",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#ffffff",
+  "background_color": "#1b1a17",
+  "theme_color": "#1b1a17",
   "orientation": "portrait-primary",
   "scope": "/",
   "icons": [

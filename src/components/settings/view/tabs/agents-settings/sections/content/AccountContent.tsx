@@ -23,11 +23,11 @@ type AgentVisualConfig = {
 const agentConfig: Record<AgentProvider, AgentVisualConfig> = {
   claude: {
     name: 'Claude',
-    bgClass: 'bg-blue-50 dark:bg-blue-900/20',
-    borderClass: 'border-blue-200 dark:border-blue-800',
-    textClass: 'text-blue-900 dark:text-blue-100',
-    subtextClass: 'text-blue-700 dark:text-blue-300',
-    buttonClass: 'bg-blue-600 hover:bg-blue-700 active:bg-blue-800',
+    bgClass: 'bg-orchestrator-wash',
+    borderClass: 'border-orchestrator/30',
+    textClass: 'text-foreground',
+    subtextClass: 'text-muted-foreground',
+    buttonClass: 'bg-orchestrator hover:bg-orchestrator/90 active:bg-orchestrator/80',
   },
   cursor: {
     name: 'Cursor',

@@ -11,20 +11,13 @@ export const useTheme = () => {
 };
 
 export const ThemeProvider = ({ children }) => {
-  // Check for saved theme preference or default to system preference
+  // duet: dark es el tema primario — default dark salvo preferencia guardada
   const [isDarkMode, setIsDarkMode] = useState(() => {
-    // Check localStorage first
     const savedTheme = localStorage.getItem('theme');
     if (savedTheme) {
       return savedTheme === 'dark';
     }
-    
-    // Check system preference
-    if (window.matchMedia) {
-      return window.matchMedia('(prefers-color-scheme: dark)').matches;
-    }
-    
-    return false;
+    return true;
   });
 
   // Update document class and localStorage when theme changes
@@ -41,7 +34,7 @@ export const ThemeProvider = ({ children }) => {
       
       const themeColorMeta = document.querySelector('meta[name="theme-color"]');
       if (themeColorMeta) {
-        themeColorMeta.setAttribute('content', '#141414'); // Dark background color (hsl(0 0% 8%))
+        themeColorMeta.setAttribute('content', '#1b1a17'); // duet dark canvas
       }
     } else {
       document.documentElement.classList.remove('dark');
@@ -55,7 +48,7 @@ export const ThemeProvider = ({ children }) => {
       
       const themeColorMeta = document.querySelector('meta[name="theme-color"]');
       if (themeColorMeta) {
-        themeColorMeta.setAttribute('content', '#f6f4ef'); // Light background color (warm cream)
+        themeColorMeta.setAttribute('content', '#f8f8f6'); // duet light canvas
       }
     }
   }, [isDarkMode]);

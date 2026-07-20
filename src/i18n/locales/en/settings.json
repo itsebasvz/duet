@@ -472,7 +472,7 @@
     },
     "managed": {
       "badge": "Managed",
-      "hint": "Managed by CloudCLI."
+      "hint": "Managed by duet."
     },
     "help": {
       "title": "About Codex MCP",
@@ -504,7 +504,7 @@
     "docs": "Docs",
     "sections": {
       "officialTitle": "Official Plugins",
-      "officialDescription": "Maintained by the CloudCLI team and ready for direct install.",
+      "officialDescription": "Maintained by the duet team and ready for direct install.",
       "unofficialTitle": "Other Plugins",
       "unofficialDescription": "Unofficial plugins and integrations from other users. Review the source before installing."
     },
@@ -533,9 +533,9 @@
       "install": "Install"
     },
     "prismCloudCLI": {
-      "name": "PRISM CloudCLI",
+      "name": "PRISM duet",
       "badge": "unofficial",
-      "description": "Session intelligence for Claude Code, inside CloudCLI. See why your sessions are burning tokens without leaving the browser.",
+      "description": "Session intelligence for Claude Code, inside duet. See why your sessions are burning tokens without leaving the browser.",
       "install": "Install"
     },
     "sessionManagerPlugin": {

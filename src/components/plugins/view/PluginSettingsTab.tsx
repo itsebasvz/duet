@@ -659,15 +659,6 @@ export default function PluginSettingsTab() {
         >
           {t('pluginSettings.starter')} <ExternalLink className="h-2.5 w-2.5" />
         </a>
-        <span className="text-muted-foreground/20">·</span>
-        <a
-          href="https://cloudcli.ai/docs/plugin-overview"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-1 text-xs text-muted-foreground/60 transition-colors hover:text-foreground"
-        >
-          {t('pluginSettings.docs')} <ExternalLink className="h-2.5 w-2.5" />
-        </a>
       </div>
     </div>
   );

@@ -474,7 +474,7 @@
     "docs": "Docs",
     "sections": {
       "officialTitle": "Plugins officiels",
-      "officialDescription": "Maintenus par l'équipe CloudCLI et prêts à être installés directement.",
+      "officialDescription": "Maintenus par l'équipe duet et prêts à être installés directement.",
       "unofficialTitle": "Autres plugins",
       "unofficialDescription": "Plugins non officiels et intégrations d'autres utilisateurs. Examinez le code source avant d'installer."
     },
@@ -503,9 +503,9 @@
       "install": "Installer"
     },
     "prismCloudCLI": {
-      "name": "PRISM CloudCLI",
+      "name": "PRISM duet",
       "badge": "non officiel",
-      "description": "Intelligence de session pour Claude Code, dans CloudCLI. Voyez pourquoi vos sessions consomment des tokens sans quitter le navigateur.",
+      "description": "Intelligence de session pour Claude Code, dans duet. Voyez pourquoi vos sessions consomment des tokens sans quitter le navigateur.",
       "install": "Installer"
     },
     "sessionManagerPlugin": {

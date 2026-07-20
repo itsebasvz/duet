@@ -15,8 +15,9 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ['"Encode Sans"', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', '"Helvetica Neue"', 'Arial', 'sans-serif'],
-        serif: ['Merriweather', 'Georgia', 'Cambria', '"Times New Roman"', 'serif'],
+        sans: ['Inter', 'ui-sans-serif', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', 'sans-serif'],
+        serif: ['"Source Serif 4"', 'ui-serif', 'Georgia', 'serif'],
+        mono: ['"JetBrains Mono"', 'ui-monospace', 'Menlo', 'monospace'],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -51,6 +52,26 @@ export default {
         card: {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
+        },
+        // duet — acentos de agente y funcionales (DESIGN.md)
+        orchestrator: {
+          DEFAULT: "hsl(var(--accent-orchestrator))",
+          wash: "hsl(var(--accent-orchestrator-wash))",
+        },
+        worker: {
+          DEFAULT: "hsl(var(--accent-worker))",
+          wash: "hsl(var(--accent-worker-wash))",
+        },
+        sunken: "hsl(var(--surface-sunken))",
+        success: "hsl(var(--fn-success))",
+        warning: "hsl(var(--fn-warning))",
+        "diff-add": {
+          DEFAULT: "hsl(var(--diff-add-bg))",
+          foreground: "hsl(var(--diff-add-text))",
+        },
+        "diff-del": {
+          DEFAULT: "hsl(var(--diff-del-bg))",
+          foreground: "hsl(var(--diff-del-text))",
         },
       },
       borderRadius: {
