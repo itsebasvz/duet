@@ -4,16 +4,19 @@ Estado: brainstorm cerrado sobre base técnica, previo a desarrollo. Última act
 
 ## Concepto
 
-Sistema dual-agente para desarrollo de software:
+Sistema dual-agente para desarrollo de software. El eje **no** es orquestar por orquestar: es la **economía de tokens**. Un modelo caro piensa; uno más barato (o el que el usuario elija) ejecuta. Apps para orquestar hay mil; para trabajar eficiente con **solo dos modelos**, casi ninguna — ese es el hueco que duet llena.
 
-- **Orquestador**: Claude Code (modelo "pensante") — planea, escribe briefs, revisa entregas. No hace la talacha.
-- **Ejecutor (worker)**: agente CLI externo que escribe/corre el código. Primer worker: **Hermes Agent** (Nous Research). Diseño agnóstico para conectar otros a futuro (Codex, OpenCode, OpenClaw…).
+- **Orquestador** (modelo "pensante", caro) — planea, escribe briefs, revisa entregas. No hace la talacha. **Elegible por el usuario** vía el selector de provider heredado del fork: Claude Code, Codex, Cursor, OpenCode. El usuario decide *quién piensa*.
+- **Ejecutor (worker)**: agente CLI externo que escribe/corre el código. Primer worker: **Hermes Agent** (Nous Research). Diseño agnóstico para conectar otros a futuro (Codex, OpenCode, OpenClaw…). El usuario decide *quién ejecuta*.
 - **UI web** (:8214): canal único del usuario. Chat con el orquestador + observabilidad total en vivo.
+
+El valor no es "otro multi-agente", sino que **cada token caro se gasta en pensar, no en teclear**: el usuario controla ambos extremos y ve todo el intercambio.
 
 ## Decisiones firmes
 
 | Tema | Decisión | Razón |
 |---|---|---|
+| Elección del orquestador | **Conservar el selector de provider del fork** (Claude / Codex / Cursor / OpenCode) | El usuario elige *quién piensa*; libertad en ambos extremos es el diferenciador, no atarse a un solo vendor |
 | Ubicación del orquestador | En el mismo host que el worker | Elimina hop SSH; todo local |
 | Integración Claude | Claude Code CLI headless: `claude -p --resume --output-format stream-json --append-system-prompt` | Streaming de eventos token a token; sesiones resumibles |
 | Auth Claude | **Suscripción base vía `claude setup-token`** — nunca API key / créditos | Requisito duro: sin costos adicionales a la suscripción existente |

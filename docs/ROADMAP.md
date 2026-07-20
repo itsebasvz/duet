@@ -2,7 +2,9 @@
 
 Estado: aprobado para iniciar desarrollo. Última actualización: 2026-07-20.
 
-Principio rector: **base excelente antes que features**. Cada versión entrega algo usable y estable; nada de medias implementaciones arrastradas entre fases.
+Norte del producto: **economía de tokens**. Un modelo caro piensa; el usuario elige quién ejecuta (y quién orquesta). No es otro multi-agente; es un flujo eficiente de **dos modelos**. Cada decisión de fase se juzga contra esto: ¿gasta el token caro en pensar, no en teclear?
+
+Principio rector de ejecución: **base excelente antes que features**. Cada versión entrega algo usable y estable; nada de medias implementaciones arrastradas entre fases.
 
 ---
 
@@ -24,6 +26,7 @@ Sí entra:
 - Rebrand a duet (nombre, wordmark, repo hygiene sobre el fork)
 - Tema visual aplicado según `DESIGN.md` (tokens light/dark, tipografía, componentes base)
 - Chat con orquestador Claude Code funcionando con **suscripción base** (requisito duro)
+- **Selector de provider conservado** (Claude / Codex / Cursor / OpenCode): elegir *quién orquesta* es un activo del fork que se mantiene, no se toca
 - Estructura de config de duet (archivo de config donde luego vivirán los drivers)
 - Repo limpio, corriendo en dev local
 
