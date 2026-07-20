@@ -24,7 +24,7 @@ Navegador ──► duet (:8214, systemd)
                └─ Panel de diffs del repo en vivo
 ```
 
-Ver [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) para decisiones de arquitectura; [DESIGN.md](DESIGN.md) para el sistema de diseño visual.
+Ver [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) para decisiones de arquitectura; [docs/ROADMAP.md](docs/ROADMAP.md) para el plan de desarrollo; [DESIGN.md](DESIGN.md) para el sistema de diseño visual.
 
 ## Estado
 

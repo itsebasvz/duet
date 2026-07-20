@@ -72,8 +72,4 @@ Cada worker nuevo = un driver: cómo invocarlo + cómo parsear su sesión + de d
 
 ## Roadmap
 
-1. **v0.1**: fork de claudecodeui corriendo tal cual + repo duet estructurado
-2. **v0.2**: panel worker (feed Hermes desde `state.db`) + panel diffs
-3. **v0.3**: delegación integrada (system prompt Duet + driver Hermes) + password auth
-4. **v0.4**: systemd unit, config declarativa de workers, docs de instalación
-5. Futuro: más drivers (Codex, OpenCode…), imagen Docker, streaming token-level del worker
+Ver [ROADMAP.md](ROADMAP.md) — plan de desarrollo por fases (Fase 0 auditoría → v0.1 MVP → v0.2 observabilidad → v0.3 delegación → v0.4 producción) con alcances explícitos y temas transversales.
