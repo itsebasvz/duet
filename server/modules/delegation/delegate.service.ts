@@ -68,88 +68,109 @@ function snapshotWorkerTrace(exchangeId: string, workerSessionId: string | null)
   }
 }
 
+/** Tool identity — shared by every transport that exposes `delegate`. */
+export const DELEGATE_TOOL_NAME = 'delegate';
+export const DELEGATE_TOOL_DESCRIPTION =
+  'Hand a self-contained task to the worker CLI, which executes it in its own ' +
+  'process and returns the result. The worker does NOT see this conversation, ' +
+  'so the brief must be fully self-contained (goal, paths, constraints, ' +
+  'definition of done). Use for hands-on execution; keep planning and review ' +
+  'to yourself.';
+
+/** Zod input shape, reused by the SDK tool and the HTTP MCP server. */
+export const delegateInputShape = {
+  brief: z
+    .string()
+    .min(1)
+    .describe('Self-contained task for the worker: goal, relevant paths, constraints, what "done" means.'),
+  cwd: z
+    .string()
+    .optional()
+    .describe('Absolute working directory the worker runs in. Defaults to the orchestrator cwd.'),
+};
+
+export type DelegateArgs = { brief: string; cwd?: string };
+
+/** Transport-neutral outcome; each transport maps it to its own result shape. */
+export type DelegateOutcome = { text: string; isError: boolean };
+
+/**
+ * Runs one delegation end-to-end, independent of how the tool was invoked:
+ * records the exchange, spawns/resumes the worker, streams lifecycle frames, and
+ * returns the worker's output. Called by every transport — the in-process SDK
+ * tool today, the HTTP MCP server next — so nothing here may touch a specific
+ * agent SDK or the WebSocket layer.
+ */
+export async function runDelegation(args: DelegateArgs, ctx: DelegateContext): Promise<DelegateOutcome> {
+  const claudeSessionId = ctx.getSessionId();
+  if (!claudeSessionId) {
+    return { text: 'La sesión del orquestador aún no está lista; reintenta la delegación.', isError: true };
+  }
+
+  const cwd = args.cwd ?? ctx.defaultCwd ?? process.cwd();
+  // Continue this orchestrator's existing worker thread when one exists, so the
+  // worker keeps its context (no re-exploring) and the reloaded prefix hits the
+  // prompt cache. The stored `brief` stays the raw text the orchestrator sent
+  // (clean cards); only the FIRST brief of a thread carries the identity
+  // preamble — on resume the worker already has it.
+  const resumeSessionId = delegationExchangesDb.latestWorkerSessionId(claudeSessionId);
+  const workerBrief = resumeSessionId ? args.brief : `${WORKER_BRIEF_PREAMBLE}\n${args.brief}`;
+
+  const id = delegationExchangesDb.create({
+    claudeSessionId,
+    workerDriverId: hermesDriver.id,
+    brief: args.brief,
+    cwd,
+  });
+
+  const emit = (event: DelegationFrame['event']) => {
+    const exchange = delegationExchangesDb.getById(id);
+    if (exchange) {
+      ctx.send({ kind: 'delegation', provider: 'claude', sessionId: claudeSessionId, event, exchange });
+    }
+  };
+
+  emit('brief');
+
+  let workerSessionId: string | null = null;
+  const result = await invokeWorker({
+    brief: workerBrief,
+    cwd,
+    driver: hermesDriver,
+    resumeSessionId,
+    onSessionId: (sessionId) => {
+      workerSessionId = sessionId;
+      delegationExchangesDb.markRunning(id, sessionId);
+      emit('running');
+    },
+  });
+
+  if (result.status === 'done') {
+    delegationExchangesDb.markDone(id, {
+      resultText: result.resultText,
+      exitCode: result.exitCode,
+    });
+    snapshotWorkerTrace(id, workerSessionId);
+    emit('result');
+    return { text: result.resultText || '(el worker terminó sin producir salida)', isError: false };
+  }
+
+  const errorMessage = result.errorMessage ?? 'El worker falló sin un mensaje de error.';
+  delegationExchangesDb.markError(id, { errorMessage, exitCode: result.exitCode });
+  emit('result');
+  return { text: `El worker falló: ${errorMessage}`, isError: true };
+}
+
 /**
  * Builds the in-process `duet` MCP server exposing the `delegate` tool, bound to
- * one orchestrator run via `ctx`.
+ * one orchestrator run via `ctx`. Thin wrapper: the SDK tool just maps the
+ * transport-neutral outcome of `runDelegation` onto the SDK's result shape.
  */
 export function buildDuetMcpServer(ctx: DelegateContext) {
-  const delegate = tool(
-    'delegate',
-    'Hand a self-contained task to the worker CLI, which executes it in its own ' +
-      'process and returns the result. The worker does NOT see this conversation, ' +
-      'so the brief must be fully self-contained (goal, paths, constraints, ' +
-      'definition of done). Use for hands-on execution; keep planning and review ' +
-      'to yourself.',
-    {
-      brief: z
-        .string()
-        .min(1)
-        .describe('Self-contained task for the worker: goal, relevant paths, constraints, what "done" means.'),
-      cwd: z
-        .string()
-        .optional()
-        .describe('Absolute working directory the worker runs in. Defaults to the orchestrator cwd.'),
-    },
-    async (args) => {
-      const claudeSessionId = ctx.getSessionId();
-      if (!claudeSessionId) {
-        return textResult('La sesión del orquestador aún no está lista; reintenta la delegación.', true);
-      }
-
-      const cwd = args.cwd ?? ctx.defaultCwd ?? process.cwd();
-      // Continue this orchestrator's existing worker thread when one exists, so
-      // the worker keeps its context (no re-exploring) and the reloaded prefix
-      // hits the prompt cache. The stored `brief` stays the raw text Claude sent
-      // (clean cards); only the FIRST brief of a thread carries the identity
-      // preamble — on resume the worker already has it.
-      const resumeSessionId = delegationExchangesDb.latestWorkerSessionId(claudeSessionId);
-      const workerBrief = resumeSessionId ? args.brief : `${WORKER_BRIEF_PREAMBLE}\n${args.brief}`;
-
-      const id = delegationExchangesDb.create({
-        claudeSessionId,
-        workerDriverId: hermesDriver.id,
-        brief: args.brief,
-        cwd,
-      });
-
-      const emit = (event: DelegationFrame['event']) => {
-        const exchange = delegationExchangesDb.getById(id);
-        if (exchange) {
-          ctx.send({ kind: 'delegation', provider: 'claude', sessionId: claudeSessionId, event, exchange });
-        }
-      };
-
-      emit('brief');
-
-      let workerSessionId: string | null = null;
-      const result = await invokeWorker({
-        brief: workerBrief,
-        cwd,
-        driver: hermesDriver,
-        resumeSessionId,
-        onSessionId: (sessionId) => {
-          workerSessionId = sessionId;
-          delegationExchangesDb.markRunning(id, sessionId);
-          emit('running');
-        },
-      });
-
-      if (result.status === 'done') {
-        delegationExchangesDb.markDone(id, {
-          resultText: result.resultText,
-          exitCode: result.exitCode,
-        });
-        snapshotWorkerTrace(id, workerSessionId);
-        emit('result');
-        return textResult(result.resultText || '(el worker terminó sin producir salida)');
-      }
-
-      const errorMessage = result.errorMessage ?? 'El worker falló sin un mensaje de error.';
-      delegationExchangesDb.markError(id, { errorMessage, exitCode: result.exitCode });
-      emit('result');
-      return textResult(`El worker falló: ${errorMessage}`, true);
-    },
-  );
+  const delegate = tool(DELEGATE_TOOL_NAME, DELEGATE_TOOL_DESCRIPTION, delegateInputShape, async (args) => {
+    const outcome = await runDelegation(args, ctx);
+    return textResult(outcome.text, outcome.isError);
+  });
 
   return createSdkMcpServer({ name: 'duet', version: '0.3.0', tools: [delegate] });
 }
