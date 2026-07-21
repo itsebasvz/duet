@@ -15,9 +15,9 @@
 import { createSdkMcpServer, tool } from '@anthropic-ai/claude-agent-sdk';
 import { z } from 'zod';
 
-import { delegationExchangesDb } from '@/modules/database/index.js';
+import { delegationExchangesDb, delegationWorkerMessagesDb } from '@/modules/database/index.js';
 import type { DelegationExchangeRow } from '@/modules/database/index.js';
-import { hermesDriver, invokeWorker } from '@/modules/worker-feed/index.js';
+import { getMessages, hermesDriver, invokeWorker } from '@/modules/worker-feed/index.js';
 
 import { WORKER_BRIEF_PREAMBLE } from './duet-prompt.js';
 
@@ -44,6 +44,28 @@ export type DelegateContext = {
 
 function textResult(text: string, isError = false) {
   return { content: [{ type: 'text' as const, text }], isError };
+}
+
+/**
+ * Persists the worker's transcript for a completed exchange so its thinking +
+ * tool calls survive a reload (the live feed and the worker's own store are both
+ * ephemeral). Best-effort: a failure here must never fail the delegation, since
+ * the worker already produced its result. Taken only on success — the process
+ * has exited, so the worker store's rows for this session are final.
+ */
+function snapshotWorkerTrace(exchangeId: string, workerSessionId: string | null): void {
+  if (!workerSessionId) {
+    return;
+  }
+  try {
+    const messages = getMessages(workerSessionId);
+    if (messages.length > 0) {
+      delegationWorkerMessagesDb.replaceForExchange(exchangeId, messages);
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.warn('[Delegate] worker-trace snapshot failed:', message);
+  }
 }
 
 /**
@@ -99,13 +121,15 @@ export function buildDuetMcpServer(ctx: DelegateContext) {
 
       emit('brief');
 
+      let workerSessionId: string | null = null;
       const result = await invokeWorker({
         brief: workerBrief,
         cwd,
         driver: hermesDriver,
         resumeSessionId,
-        onSessionId: (workerSessionId) => {
-          delegationExchangesDb.markRunning(id, workerSessionId);
+        onSessionId: (sessionId) => {
+          workerSessionId = sessionId;
+          delegationExchangesDb.markRunning(id, sessionId);
           emit('running');
         },
       });
@@ -115,6 +139,7 @@ export function buildDuetMcpServer(ctx: DelegateContext) {
           resultText: result.resultText,
           exitCode: result.exitCode,
         });
+        snapshotWorkerTrace(id, workerSessionId);
         emit('result');
         return textResult(result.resultText || '(el worker terminó sin producir salida)');
       }

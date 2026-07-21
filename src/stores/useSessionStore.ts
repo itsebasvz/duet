@@ -10,6 +10,7 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
 
 import { authenticatedFetch } from '../utils/api';
+import type { WorkerFeedMessage } from '../components/worker-feed/types';
 import type { LLMProvider } from '../types/app';
 
 // ─── NormalizedMessage (mirrors server/adapters/types.js) ────────────────────
@@ -46,6 +47,13 @@ export interface DelegationExchange {
   cost_usd: number | null;
   created_at: string;
   updated_at: string;
+  /**
+   * Durable snapshot of the worker's transcript, embedded by the `/delegations`
+   * endpoint. Present for completed exchanges; lets the card replay the worker's
+   * thinking + tool calls on reload without the (ephemeral) live feed or the
+   * worker's own store. Absent/empty for live frames — those tail instead.
+   */
+  worker_messages?: WorkerFeedMessage[];
 }
 
 export interface NormalizedMessage {

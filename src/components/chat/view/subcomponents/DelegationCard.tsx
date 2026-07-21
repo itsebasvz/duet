@@ -71,12 +71,14 @@ export default function DelegationCard({ exchange }: { exchange: DelegationExcha
         </div>
       )}
 
-      {/* Live worker tool-calling (tails while running, collapsed trace after) */}
-      {exchange.worker_session_id && (
+      {/* Worker tool-calling: live tail while running, durable snapshot after
+          (falls back to the worker store when no snapshot was captured). */}
+      {(exchange.worker_session_id || (exchange.worker_messages?.length ?? 0) > 0) && (
         <WorkerActivity
           workerSessionId={exchange.worker_session_id}
           running={isRunning}
           createdAt={exchange.created_at}
+          snapshot={exchange.worker_messages}
         />
       )}
 

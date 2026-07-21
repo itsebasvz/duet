@@ -2,6 +2,7 @@ import { Database } from 'better-sqlite3';
 
 import {
   APP_CONFIG_TABLE_SCHEMA_SQL,
+  DELEGATION_WORKER_MESSAGES_TABLE_SCHEMA_SQL,
   LAST_SCANNED_AT_SQL,
   NOTIFICATION_CHANNEL_ENDPOINTS_TABLE_SCHEMA_SQL,
   PROJECTS_TABLE_SCHEMA_SQL,
@@ -472,6 +473,11 @@ export const runMigrations = (db: Database) => {
     }
 
     db.exec(LAST_SCANNED_AT_SQL);
+
+    db.exec(DELEGATION_WORKER_MESSAGES_TABLE_SCHEMA_SQL);
+    db.exec(
+      'CREATE INDEX IF NOT EXISTS idx_delegation_worker_messages_exchange ON delegation_worker_messages(exchange_id)'
+    );
     console.log('Database migrations completed successfully');
   } catch (error: any) {
     console.error('Error running migrations:', error.message);

@@ -7,7 +7,7 @@ import { providerModelsService } from '@/modules/providers/services/provider-mod
 import { providerSkillsService } from '@/modules/providers/services/skills.service.js';
 import { sessionConversationsSearchService } from '@/modules/providers/services/session-conversations-search.service.js';
 import { sessionsService } from '@/modules/providers/services/sessions.service.js';
-import { delegationExchangesDb, sessionsDb } from '@/modules/database/index.js';
+import { delegationExchangesDb, delegationWorkerMessagesDb, sessionsDb } from '@/modules/database/index.js';
 import type {
   LLMProvider,
   McpScope,
@@ -641,7 +641,15 @@ router.get(
     const session = sessionsDb.getSessionById(sessionId);
     const providerSessionId = session?.provider_session_id ?? sessionId;
     const exchanges = delegationExchangesDb.listBySession(providerSessionId);
-    res.json(createApiSuccessResponse({ exchanges }));
+    // Embed each exchange's durable worker-trace snapshot so a reload can replay
+    // the worker's thinking + tool calls without the live feed (memory-only) or
+    // the worker's own store (external/rotatable).
+    const snapshots = delegationWorkerMessagesDb.byExchangeIds(exchanges.map((e) => e.id));
+    const withMessages = exchanges.map((e) => ({
+      ...e,
+      worker_messages: snapshots.get(e.id) ?? [],
+    }));
+    res.json(createApiSuccessResponse({ exchanges: withMessages }));
   }),
 );
 

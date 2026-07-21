@@ -8,6 +8,7 @@ export type {
   DelegationExchangeRow,
   DelegationStatus,
 } from '@/modules/database/repositories/delegation-exchanges.js';
+export { delegationWorkerMessagesDb } from '@/modules/database/repositories/delegation-worker-messages.js';
 export { githubTokensDb } from '@/modules/database/repositories/github-tokens.js';
 export { notificationChannelEndpointsDb } from '@/modules/database/repositories/notification-channel-endpoints.js';
 export { notificationPreferencesDb } from '@/modules/database/repositories/notification-preferences.js';

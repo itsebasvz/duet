@@ -14,3 +14,5 @@ export type {
 } from '@/modules/worker-feed/worker-invoker.service.js';
 export { hermesDriver } from '@/modules/worker-feed/drivers/hermes.driver.js';
 export type { WorkerDriver } from '@/modules/worker-feed/drivers/driver.types.js';
+export { getMessages } from '@/modules/worker-feed/worker-feed.service.js';
+export type { WorkerFeedMessage } from '@/modules/worker-feed/worker-feed.service.js';

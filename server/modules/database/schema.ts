@@ -159,6 +159,35 @@ CREATE TABLE IF NOT EXISTS delegation_exchanges (
 );
 `;
 
+// Durable snapshot of a worker's transcript for one delegation, taken when the
+// exchange completes. The live feed (websocket) and the worker's own store
+// (\`~/.hermes/state.db\`, rotatable/compactable) are both ephemeral, so without
+// this the worker's thinking + tool calls vanish on reload. Rows mirror the
+// driver-agnostic \`WorkerFeedMessage\` shape (any worker CLI maps its native
+// store into that shape), so a second driver persists here unchanged. Complex
+// fields (\`tool_calls\`, \`tool_result\`) are JSON-encoded; \`seq\` is the worker's
+// own message id, preserving order and matching live-frame keys.
+export const DELEGATION_WORKER_MESSAGES_TABLE_SCHEMA_SQL = `
+CREATE TABLE IF NOT EXISTS delegation_worker_messages (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    exchange_id TEXT NOT NULL,
+    seq INTEGER NOT NULL,
+    role TEXT NOT NULL,
+    kind TEXT NOT NULL,
+    content TEXT,
+    tool_name TEXT,
+    tool_call_id TEXT,
+    tool_calls TEXT,
+    tool_result TEXT,
+    reasoning TEXT,
+    finish_reason TEXT,
+    timestamp INTEGER NOT NULL,
+    active INTEGER NOT NULL DEFAULT 1,
+    compacted INTEGER NOT NULL DEFAULT 0,
+    FOREIGN KEY (exchange_id) REFERENCES delegation_exchanges(id) ON DELETE CASCADE
+);
+`;
+
 export const INIT_SCHEMA_SQL = `
 -- Initialize authentication database
 PRAGMA foreign_keys = ON;
@@ -206,4 +235,7 @@ ${APP_CONFIG_TABLE_SCHEMA_SQL}
 ${DELEGATION_EXCHANGES_TABLE_SCHEMA_SQL}
 CREATE INDEX IF NOT EXISTS idx_delegation_exchanges_session ON delegation_exchanges(claude_session_id);
 CREATE INDEX IF NOT EXISTS idx_delegation_exchanges_status ON delegation_exchanges(status);
+
+${DELEGATION_WORKER_MESSAGES_TABLE_SCHEMA_SQL}
+CREATE INDEX IF NOT EXISTS idx_delegation_worker_messages_exchange ON delegation_worker_messages(exchange_id);
 `;

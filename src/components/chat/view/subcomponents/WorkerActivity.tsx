@@ -215,15 +215,24 @@ export default function WorkerActivity({
   workerSessionId,
   running,
   createdAt,
+  snapshot,
 }: {
   workerSessionId: string | null;
   running: boolean;
   createdAt: string;
+  snapshot?: WorkerFeedMessage[];
 }) {
   const { t } = useTranslation('chat');
-  // Load history for any session (so a finished delegation still renders its
-  // trace); only live-tail while the run is active.
-  const { messages } = useWorkerFeed(workerSessionId, { tail: running });
+  // A durable snapshot (persisted at completion) is the source of truth for a
+  // finished run: it survives even if the worker's own store is cleared/rotated.
+  // Prefer it and skip the worker-store fetch/tail entirely (pass a null session
+  // id so useWorkerFeed stays inert). Live runs have no snapshot yet, so they
+  // fall back to tailing the store.
+  const hasSnapshot = !running && !!snapshot && snapshot.length > 0;
+  const { messages: feedMessages } = useWorkerFeed(hasSnapshot ? null : workerSessionId, {
+    tail: running,
+  });
+  const messages = hasSnapshot && snapshot ? snapshot : feedMessages;
 
   const since = useMemo(() => createdAtEpoch(createdAt), [createdAt]);
   const cards = useMemo(() => {
