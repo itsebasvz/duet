@@ -84,9 +84,9 @@ export default function DelegationCard({ exchange }: { exchange: DelegationExcha
 
       {/* Worker result */}
       {status === 'done' && (
-        <div className="rounded-lg border border-worker/30 bg-worker-wash px-3 py-2 text-sm">
-          <div className="mb-1.5 inline-flex items-center gap-1.5 text-[11px] font-medium text-worker">
-            <Inbox className="h-3 w-3" />
+        <div className="rounded-lg border border-border/70 bg-sunken px-3 py-2.5 text-sm">
+          <div className="mb-2 inline-flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+            <Inbox className="h-3 w-3 text-worker/80" />
             {t('delegation.result')}
           </div>
           <WorkerResult text={exchange.result_text} emptyLabel={t('delegation.emptyResult')} />
