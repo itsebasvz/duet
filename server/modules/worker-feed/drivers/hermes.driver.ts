@@ -54,6 +54,12 @@ export const hermesDriver: WorkerDriver = {
       { match: 'HTTP 402|credit|quota', message: 'Provider del worker sin créditos' },
       { match: 'HTTP 401|auth', message: 'Auth del provider del worker falló' },
       { match: 'HTTP 429|rate.?limit', message: 'Rate limit — Hermes agotó reintentos y fallbacks' },
+      // Console Go (opencode.ai/zen/go) devuelve 400 upstream de forma intermitente
+      // con modelos Kimi (~1 de 3); Minimax no lo dispara. Ver docs/KNOWN-ISSUES.md.
+      {
+        match: 'HTTP 400|upstream request failed',
+        message: 'El proveedor del modelo del worker rechazó la petición (HTTP 400 upstream). Con Kimi es intermitente — reintenta o usa Minimax.',
+      },
       { match: 'Session not found', message: 'Sesión del worker perdida' },
     ],
   },
