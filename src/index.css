@@ -24,52 +24,52 @@
 @layer base {
   /* duet light theme (secundario) — DESIGN.md: pergamino cálido */
   :root {
-    --background: 60 12.5% 96.9%;      /* Canvas #f8f8f6 */
-    --foreground: 0 0% 7.1%;           /* Ink #121212 */
+    --background: 48 21% 94.5%;        /* Pampas #f4f3ee (Claude light) */
+    --foreground: 0 0% 9.8%;           /* Ink #191919 */
     --card: 0 0% 100%;                 /* Card #ffffff */
-    --card-foreground: 0 0% 7.1%;
+    --card-foreground: 0 0% 9.8%;
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 7.1%;
-    --primary: 0 0% 7.1%;              /* botón primario = filled dark */
-    --primary-foreground: 60 12.5% 96.9%;
-    --secondary: 45 11.1% 92.9%;       /* Nested #efeeeb */
-    --secondary-foreground: 60 2.8% 21%; /* Graphite #373734 */
-    --muted: 45 11.1% 92.9%;
-    --muted-foreground: 42.9 2.9% 46.9%; /* Ashen #7b7974 */
-    --accent: 45 11.1% 92.9%;
-    --accent-foreground: 60 2.8% 21%;
-    --destructive: 5.3 40.2% 50.2%;    /* Brick #b3564d */
-    --destructive-foreground: 60 12.5% 96.9%;
-    --border: 50 11.1% 89.4%;          /* Hairline #e7e6e1 */
-    --input: 60 1.4% 71.4%;            /* Mist #b7b7b5 */
-    --ring: 15 53% 48%;                /* Clay #bd5d3a */
+    --popover-foreground: 0 0% 9.8%;
+    --primary: 0 0% 9.8%;              /* botón primario = filled dark */
+    --primary-foreground: 48 21% 94.5%;
+    --secondary: 43 20% 91%;           /* Nested #eceae4 */
+    --secondary-foreground: 48 6% 26%; /* Graphite #45443f */
+    --muted: 43 20% 91%;
+    --muted-foreground: 45 6% 43.5%;   /* Ashen #73716b */
+    --accent: 43 20% 91%;
+    --accent-foreground: 48 6% 26%;
+    --destructive: 5.3 40.2% 50.2%;    /* Red #b3564d */
+    --destructive-foreground: 48 21% 94.5%;
+    --border: 45 17% 87.5%;            /* Hairline #e4e2da */
+    --input: 45 11% 77%;               /* Mist #cac8be */
+    --ring: 16 53% 50%;                /* Crail #c15f3c (Claude coral) */
     --radius: 0.5rem;
 
-    /* duet — acentos de agente y funcionales (DESIGN.md) */
-    --accent-orchestrator: 15 53% 48%;           /* Clay #bd5d3a */
-    --accent-orchestrator-wash: 16 55% 92%;      /* #f6e7e0 */
-    --accent-worker: 158.3 14.2% 49.8%;          /* Verdigris #6d9182 */
-    --accent-worker-wash: 150 16.7% 92.9%;       /* #eaf0ed */
-    --surface-sunken: 45 11.1% 92.9%;            /* terminal (light = nested) */
-    --fn-success: 121.6 14.9% 48.8%;             /* Moss #6a8f6b */
-    --fn-error: 5.3 40.2% 50.2%;                 /* Brick #b3564d */
-    --fn-warning: 34.6 36.8% 51%;                /* Amber #b08954 (funcional) */
-    --diff-add-bg: 98.2 25.6% 91.6%;
-    --diff-add-text: 120 18.2% 35.5%;
-    --diff-del-bg: 9.5 44.2% 91.6%;
-    --diff-del-text: 6.2 36.8% 41%;
+    /* duet — acentos de agente y funcionales (paleta exacta Claude) */
+    --accent-orchestrator: 16 53% 50%;           /* Crail #c15f3c */
+    --accent-orchestrator-wash: 18 58% 91%;      /* #f6e3da */
+    --accent-worker: 162 50% 36%;                /* Teal #2e8b6f (rampa Teal Claude) */
+    --accent-worker-wash: 156 31% 90%;           /* #dfeee8 */
+    --surface-sunken: 43 20% 91%;                /* terminal (light = nested) */
+    --fn-success: 100 45% 42%;                   /* Green #5a9a3a (rampa Green Claude) */
+    --fn-error: 5.3 40.2% 50.2%;                 /* Red #b3564d */
+    --fn-warning: 36 77% 43.5%;                  /* Amber #c47f1a (rampa Amber Claude) */
+    --diff-add-bg: 90 43% 89%;
+    --diff-add-text: 85 55% 27%;
+    --diff-del-bg: 9 55% 90%;
+    --diff-del-text: 7 37% 41%;
 
     /* Nav design tokens — sin glassmorphism (DESIGN.md: pizarra plana) */
     --nav-glass-bg: 60 12.5% 96.9% / 0.98;
     --nav-glass-blur: 0px;
     --nav-glass-saturate: 1;
-    --nav-tab-glow: 15 53% 48% / 0;
-    --nav-tab-ring: 15 53% 48% / 0.15;
+    --nav-tab-glow: 16 53% 50% / 0;
+    --nav-tab-ring: 16 53% 50% / 0.15;
     --nav-float-shadow: 0 0% 0% / 0.04;
-    --nav-float-ring: 50 11.1% 89.4% / 0.5;
-    --nav-divider-color: 50 11.1% 89.4% / 0.6;
-    --nav-input-bg: 45 11.1% 92.9% / 0.6;
-    --nav-input-focus-ring: 15 53% 48% / 0.22;
+    --nav-float-ring: 45 17% 87.5% / 0.5;
+    --nav-divider-color: 45 17% 87.5% / 0.6;
+    --nav-input-bg: 43 20% 91% / 0.6;
+    --nav-input-focus-ring: 16 53% 50% / 0.22;
 
     /* Safe area CSS variables */
     --safe-area-inset-top: env(safe-area-inset-top);
@@ -101,50 +101,50 @@
 
   /* duet dark theme (PRIMARIO) — DESIGN.md: carbón cálido, tinta clara sobre pizarra */
   .dark {
-    --background: 42 4% 14.5%;         /* Canvas #262523 (gris cálido Claude) */
-    --foreground: 45 22% 91%;          /* Ink #efece3 */
-    --card: 45 5% 17.6%;               /* Card #2f2e2b */
-    --card-foreground: 45 22% 91%;
-    --popover: 45 5% 17.6%;
-    --popover-foreground: 45 22% 91%;
-    --primary: 45 22% 91%;             /* botón primario = filled light */
-    --primary-foreground: 42 4% 14.5%;
-    --secondary: 48 7% 19.4%;          /* Nested #35342e */
-    --secondary-foreground: 45 9% 74%; /* Graphite #c2bfb6 */
-    --muted: 48 7% 19.4%;
+    --background: 60 3% 14.5%;         /* Canvas #262624 (gris cálido Claude dark) */
+    --foreground: 47 26% 92%;          /* Ink #f0eee6 */
+    --card: 50 4% 18.4%;               /* Card #30302e */
+    --card-foreground: 47 26% 92%;
+    --popover: 50 4% 18.4%;
+    --popover-foreground: 47 26% 92%;
+    --primary: 47 26% 92%;             /* botón primario = filled light */
+    --primary-foreground: 60 3% 14.5%;
+    --secondary: 48 5% 21%;            /* Nested #383733 */
+    --secondary-foreground: 44 10% 66%; /* Cloudy #b1ada1 */
+    --muted: 48 5% 21%;
     --muted-foreground: 46 8% 54%;     /* Ashen #8f8d83 */
-    --accent: 48 7% 19.4%;
-    --accent-foreground: 45 22% 91%;
-    --destructive: 6.3 49.7% 62.5%;    /* Brick #cf7a70 */
-    --destructive-foreground: 42 4% 14.5%;
-    --border: 48 6% 23.5%;             /* Hairline #3f3e39 */
-    --input: 48 6% 31%;                /* Mist #52514b */
-    --ring: 15 63% 60%;                /* Clay #d97757 */
+    --accent: 48 5% 21%;
+    --accent-foreground: 47 26% 92%;
+    --destructive: 0 75% 76%;          /* Red #f09595 (rampa Red Claude) */
+    --destructive-foreground: 60 3% 14.5%;
+    --border: 50 4% 23.5%;             /* Hairline #3e3e3b */
+    --input: 48 6% 31%;                /* Mist #55534b */
+    --ring: 15 63% 60%;                /* Coral #d97757 */
 
-    /* duet — acentos de agente y funcionales (DESIGN.md) */
-    --accent-orchestrator: 15 63% 60%;           /* Clay #d97757 (voz de Claude) */
-    --accent-orchestrator-wash: 16 29% 17%;      /* #38271f */
-    --accent-worker: 158.3 19.1% 63.1%;          /* Verdigris #8fb3a6 */
-    --accent-worker-wash: 156.9 14.6% 17.5%;     /* #26332e */
+    /* duet — acentos de agente y funcionales (paleta exacta Claude dark) */
+    --accent-orchestrator: 15 63% 60%;           /* Coral #d97757 (voz de Claude) */
+    --accent-orchestrator-wash: 15 29% 17.6%;    /* #3a2620 */
+    --accent-worker: 160 51% 58%;                /* Teal #5dcaa5 (rampa Teal Claude) */
+    --accent-worker-wash: 160 30% 15.7%;         /* #1c342c */
     --surface-sunken: 42 6% 9.6%;                /* terminal #1a1917 */
-    --fn-success: 120 17.3% 62.5%;               /* Moss #8fb08f */
-    --fn-error: 6.3 49.7% 62.5%;                 /* Brick #cf7a70 */
-    --fn-warning: 36.3 50% 62.4%;                /* Amber #cfa96f (funcional) */
-    --diff-add-bg: 98.8 21.5% 15.5%;
-    --diff-add-text: 99.6 27.8% 66.9%;
-    --diff-del-bg: 9 24.4% 16.1%;
-    --diff-del-text: 7.6 45.1% 65.7%;
+    --fn-success: 85 48% 56%;                    /* Green #97c459 (rampa Green Claude) */
+    --fn-error: 0 75% 76%;                       /* Red #f09595 */
+    --fn-warning: 36 84% 55%;                    /* Amber #ef9f27 (rampa Amber Claude) */
+    --diff-add-bg: 97 50% 13.3%;
+    --diff-add-text: 85 48% 62%;
+    --diff-del-bg: 0 38% 16.5%;
+    --diff-del-text: 4 68% 72%;
 
     /* Nav design tokens — sin glassmorphism, sin sombras (elevación por superficie) */
-    --nav-glass-bg: 45 5% 17.6% / 0.98;
+    --nav-glass-bg: 50 4% 18.4% / 0.98;
     --nav-glass-blur: 0px;
     --nav-glass-saturate: 1;
     --nav-tab-glow: 15 63% 60% / 0;
     --nav-tab-ring: 15 63% 60% / 0.18;
     --nav-float-shadow: 0 0% 0% / 0;
-    --nav-float-ring: 48 6% 23.5% / 0.4;
-    --nav-divider-color: 48 6% 23.5% / 0.5;
-    --nav-input-bg: 48 7% 19.4% / 0.6;
+    --nav-float-ring: 50 4% 23.5% / 0.4;
+    --nav-divider-color: 50 4% 23.5% / 0.5;
+    --nav-input-bg: 48 5% 21% / 0.6;
     --nav-input-focus-ring: 15 63% 60% / 0.25;
   }
 }
