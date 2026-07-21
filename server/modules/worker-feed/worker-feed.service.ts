@@ -8,6 +8,8 @@ import Database from 'better-sqlite3';
 
 import { connectedClients, WS_OPEN_STATE } from '@/modules/websocket/index.js';
 
+import { hermesDriver } from './drivers/hermes.driver.js';
+
 /**
  * Read-only observability of the worker CLI (Hermes) session store.
  *
@@ -18,15 +20,18 @@ import { connectedClients, WS_OPEN_STATE } from '@/modules/websocket/index.js';
  * detection stays the job of the process supervisor, not this feed.
  */
 
-const POLL_INTERVAL_MS = 600;
 const DEFAULT_SESSION_LIMIT = 40;
 
-// Hermes never writes ended_at when its process is killed/crashes, so an "open"
-// row (ended_at NULL) cannot be trusted to mean "still working". We treat an
-// open session with no new message in this window as stalled rather than
-// running. True liveness detection needs process supervision (v0.3, when duet
-// spawns the worker itself).
-const STALE_AFTER_MS = 5 * 60 * 1000;
+// Driver-specific knobs (store path, poll cadence, error columns, stale window)
+// live in the driver descriptor so a second worker CLI plugs in without editing
+// this reader. Hermes is the reference driver.
+const DRIVER = hermesDriver;
+const POLL_INTERVAL_MS = DRIVER.feedSource.pollIntervalMs;
+// An open row (ended_at NULL) cannot be trusted to mean "still working": Hermes
+// never writes ended_at when its process is killed/crashes. An open session with
+// no new message within this window is treated as stalled rather than running.
+// True liveness needs process supervision (v0.3, when duet spawns the worker).
+const STALE_AFTER_MS = DRIVER.feedSource.staleAfterMs;
 
 type SessionRow = {
   id: string;
@@ -135,7 +140,8 @@ type TailState = {
 const tails = new Map<string, TailState>();
 
 export function getStateDbPath(): string {
-  return process.env.HERMES_STATE_DB || path.join(os.homedir(), '.hermes', 'state.db');
+  const { envVar, defaultHomePath } = DRIVER.feedSource.store;
+  return process.env[envVar] || path.join(os.homedir(), ...defaultHomePath.split('/'));
 }
 
 export function stateDbExists(): boolean {
@@ -203,7 +209,8 @@ function mapMessage(row: MessageRow): WorkerFeedMessage {
 }
 
 function deriveStatus(row: SessionRow): WorkerActivityStatus {
-  if (row.compression_failure_error || row.handoff_error) {
+  const cols = row as unknown as Record<string, unknown>;
+  if (DRIVER.errorSignals.inStore.some((col) => cols[col])) {
     return 'error';
   }
   if (row.ended_at != null) {
@@ -237,12 +244,21 @@ function mapSession(row: SessionRow): WorkerSessionSummary {
   };
 }
 
-const SESSION_COLUMNS = `
-  id, source, model, cwd, git_branch, started_at, ended_at, end_reason,
-  message_count, tool_call_count, title, estimated_cost_usd,
-  input_tokens, output_tokens, compression_failure_error, handoff_error,
-  (SELECT MAX(timestamp) FROM messages WHERE messages.session_id = sessions.id) AS last_message_at
-`;
+// Error-signal columns and the last-activity subquery are templated from the
+// driver descriptor (all identifiers, from a trusted local const — not user
+// input) so they cannot drift from deriveStatus / the store schema.
+const SESSION_COLUMNS = (() => {
+  const { inStore } = DRIVER.errorSignals;
+  const { messagesTable, sessionKeyColumn, timestampColumn } = DRIVER.feedSource.store;
+  return `
+    id, source, model, cwd, git_branch, started_at, ended_at, end_reason,
+    message_count, tool_call_count, title, estimated_cost_usd,
+    input_tokens, output_tokens, ${inStore.join(', ')},
+    (SELECT MAX(${timestampColumn}) FROM ${messagesTable}
+       WHERE ${messagesTable}.${sessionKeyColumn} = ${DRIVER.sessionParse.table}.${DRIVER.sessionParse.idColumn})
+       AS last_message_at
+  `;
+})();
 
 /**
  * Lists recent worker sessions, newest first. Returns [] when the store is
@@ -255,7 +271,9 @@ export function listSessions(limit = DEFAULT_SESSION_LIMIT): WorkerSessionSummar
   const db = openDb();
   try {
     const rows = db
-      .prepare(`SELECT ${SESSION_COLUMNS} FROM sessions ORDER BY started_at DESC LIMIT ?`)
+      .prepare(
+        `SELECT ${SESSION_COLUMNS} FROM ${DRIVER.sessionParse.table} ORDER BY started_at DESC LIMIT ?`,
+      )
       .all(limit) as SessionRow[];
     return rows.map(mapSession);
   } catch (error) {
@@ -273,7 +291,9 @@ export function getSession(sessionId: string): WorkerSessionSummary | null {
   const db = openDb();
   try {
     const row = db
-      .prepare(`SELECT ${SESSION_COLUMNS} FROM sessions WHERE id = ?`)
+      .prepare(
+        `SELECT ${SESSION_COLUMNS} FROM ${DRIVER.sessionParse.table} WHERE ${DRIVER.sessionParse.idColumn} = ?`,
+      )
       .get(sessionId) as SessionRow | undefined;
     return row ? mapSession(row) : null;
   } catch (error) {
