@@ -18,17 +18,33 @@ function relativeTime(epochSeconds: number): string {
 }
 
 function StatusBadge({ session }: { session: WorkerSessionSummary }) {
-  if (session.status === 'open') {
+  if (session.status === 'working') {
     return (
       <span className="inline-flex items-center gap-1 text-[11px] font-medium text-worker">
         <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-worker" />
-        running
+        working
+      </span>
+    );
+  }
+  if (session.status === 'stalled') {
+    return (
+      <span className="inline-flex items-center gap-1 text-[11px] font-medium text-warning" title="No activity in a while — the worker process may have stopped without recording an end">
+        <span className="h-1.5 w-1.5 rounded-full bg-warning" />
+        stalled
+      </span>
+    );
+  }
+  if (session.status === 'error') {
+    return (
+      <span className="inline-flex items-center gap-1 text-[11px] font-medium text-warning">
+        <span className="h-1.5 w-1.5 rounded-full bg-warning" />
+        error
       </span>
     );
   }
   return (
     <span className="text-[11px] text-muted-foreground">
-      {session.endReason ?? 'ended'}
+      {session.endReason ?? 'done'}
     </span>
   );
 }

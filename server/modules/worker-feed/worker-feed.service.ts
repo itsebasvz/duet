@@ -19,6 +19,13 @@ import { connectedClients, WS_OPEN_STATE } from '@/modules/websocket/index.js';
 const POLL_INTERVAL_MS = 600;
 const DEFAULT_SESSION_LIMIT = 40;
 
+// Hermes never writes ended_at when its process is killed/crashes, so an "open"
+// row (ended_at NULL) cannot be trusted to mean "still working". We treat an
+// open session with no new message in this window as stalled rather than
+// running. True liveness detection needs process supervision (v0.3, when duet
+// spawns the worker itself).
+const STALE_AFTER_MS = 5 * 60 * 1000;
+
 type SessionRow = {
   id: string;
   source: string;
@@ -34,6 +41,9 @@ type SessionRow = {
   estimated_cost_usd: number | null;
   input_tokens: number;
   output_tokens: number;
+  compression_failure_error: string | null;
+  handoff_error: string | null;
+  last_message_at: number | null;
 };
 
 type MessageRow = {
@@ -66,8 +76,21 @@ export type WorkerSessionSummary = {
   estimatedCostUsd: number | null;
   inputTokens: number;
   outputTokens: number;
-  status: 'open' | 'ended';
+  lastMessageAt: number | null;
+  status: WorkerActivityStatus;
 };
+
+/**
+ * Derived from state.db alone (read-only, external Hermes runs):
+ *  - working: open + a message within STALE_AFTER_MS
+ *  - stalled: open + no recent activity (process likely dead/hung — Hermes
+ *    leaves ended_at NULL on crash/kill)
+ *  - done:    ended_at set (end_reason: agent_close / cli_close / session_reset)
+ *  - error:   a compression/handoff error recorded on the row
+ * Provider-level errors (credits, auth, rate-limit) never reach state.db and
+ * surface via process supervision later (v0.3).
+ */
+export type WorkerActivityStatus = 'working' | 'stalled' | 'done' | 'error';
 
 export type ParsedToolCall = {
   id: string | null;
@@ -169,6 +192,20 @@ function mapMessage(row: MessageRow): WorkerFeedMessage {
   };
 }
 
+function deriveStatus(row: SessionRow): WorkerActivityStatus {
+  if (row.compression_failure_error || row.handoff_error) {
+    return 'error';
+  }
+  if (row.ended_at != null) {
+    return 'done';
+  }
+  const lastActivity = row.last_message_at ?? row.started_at;
+  if (Date.now() - lastActivity * 1000 > STALE_AFTER_MS) {
+    return 'stalled';
+  }
+  return 'working';
+}
+
 function mapSession(row: SessionRow): WorkerSessionSummary {
   return {
     id: row.id,
@@ -185,14 +222,16 @@ function mapSession(row: SessionRow): WorkerSessionSummary {
     estimatedCostUsd: row.estimated_cost_usd,
     inputTokens: row.input_tokens,
     outputTokens: row.output_tokens,
-    status: row.ended_at == null ? 'open' : 'ended',
+    lastMessageAt: row.last_message_at,
+    status: deriveStatus(row),
   };
 }
 
 const SESSION_COLUMNS = `
   id, source, model, cwd, git_branch, started_at, ended_at, end_reason,
   message_count, tool_call_count, title, estimated_cost_usd,
-  input_tokens, output_tokens
+  input_tokens, output_tokens, compression_failure_error, handoff_error,
+  (SELECT MAX(timestamp) FROM messages WHERE messages.session_id = sessions.id) AS last_message_at
 `;
 
 /**
@@ -364,7 +403,7 @@ function pollTail(sessionId: string): void {
 
     if (!state.ended) {
       const session = getSession(sessionId);
-      if (session && session.status === 'ended') {
+      if (session && session.endedAt != null) {
         state.ended = true;
         broadcast({ sessionId, type: 'session_state', session });
       }

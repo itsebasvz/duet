@@ -13,8 +13,11 @@ export type WorkerSessionSummary = {
   estimatedCostUsd: number | null;
   inputTokens: number;
   outputTokens: number;
-  status: 'open' | 'ended';
+  lastMessageAt: number | null;
+  status: WorkerActivityStatus;
 };
+
+export type WorkerActivityStatus = 'working' | 'stalled' | 'done' | 'error';
 
 export type ParsedToolCall = {
   id: string | null;
