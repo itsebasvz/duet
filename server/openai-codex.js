@@ -270,12 +270,13 @@ export async function queryCodex(command, options = {}, ws) {
     // A non-interactive Codex run auto-denies MCP tool calls ("user cancelled MCP
     // tool call") under every restricted sandbox: read-only, workspace-write, and
     // even with network access or `default_tools_approval_mode=auto`. Only
-    // `danger-full-access` + `approval_policy=never` lets `delegate` through
-    // (verified against codex 0.144.1), so a delegating run must run unsandboxed.
+    // `danger-full-access` lets `delegate` through (verified against codex
+    // 0.144.1) and the SDK exposes no per-call approval hook, so delegation is
+    // gated on Bypass Permissions — the mode that already maps to
+    // danger-full-access. Under default/acceptEdits the run stays sandboxed and
+    // delegation is left off rather than silently widening the user's sandbox.
     let codexOptions;
-    let sandboxModeForRun = sandboxMode;
-    let approvalPolicyForRun = approvalPolicy;
-    if (process.env.DUET_DELEGATION === '1') {
+    if (process.env.DUET_DELEGATION === '1' && permissionMode === 'bypassPermissions') {
       const orchestrator = resolveOrchestrator('codex');
       if (orchestrator) {
         duetLaunch = orchestrator.buildLaunch({
@@ -288,8 +289,6 @@ export async function queryCodex(command, options = {}, ws) {
           config.mcp_servers = { duet: { url: duetLaunch.mcp.url } };
         }
         codexOptions = { config };
-        approvalPolicyForRun = 'never';
-        sandboxModeForRun = 'danger-full-access';
       }
     }
 
@@ -298,8 +297,8 @@ export async function queryCodex(command, options = {}, ws) {
     const threadOptions = {
       workingDirectory,
       skipGitRepoCheck: true,
-      sandboxMode: sandboxModeForRun,
-      approvalPolicy: approvalPolicyForRun,
+      sandboxMode,
+      approvalPolicy,
       model: resolvedModel,
       modelReasoningEffort: resolvedEffort,
     };
