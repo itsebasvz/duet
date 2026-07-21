@@ -502,7 +502,9 @@ async function queryClaudeSDK(command, options = {}, ws) {
       const duetServer = buildDuetMcpServer({
         getSessionId: () => capturedSessionId || sessionId || null,
         defaultCwd: options.cwd,
-        send: (frame) => ws.send(createNormalizedMessage(frame)),
+        // Stable id per exchange so the brief/running/result frames update one
+        // card in place instead of stacking three.
+        send: (frame) => ws.send(createNormalizedMessage({ ...frame, id: `delegation_${frame.exchange.id}` })),
       });
       sdkOptions.mcpServers = { ...(sdkOptions.mcpServers || {}), duet: duetServer };
       if (!sdkOptions.allowedTools.includes('mcp__duet__delegate')) {

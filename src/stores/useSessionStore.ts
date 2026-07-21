@@ -28,7 +28,25 @@ export type MessageKind =
   | 'permission_cancelled'
   | 'session_created'
   | 'interactive_prompt'
-  | 'task_notification';
+  | 'task_notification'
+  | 'delegation';
+
+/** One orchestrator→worker delegation row (mirrors server delegation_exchanges). */
+export interface DelegationExchange {
+  id: string;
+  claude_session_id: string;
+  worker_driver_id: string;
+  worker_session_id: string | null;
+  cwd: string | null;
+  brief: string;
+  status: 'pending' | 'running' | 'done' | 'error';
+  result_text: string | null;
+  error_message: string | null;
+  exit_code: number | null;
+  cost_usd: number | null;
+  created_at: string;
+  updated_at: string;
+}
 
 export interface NormalizedMessage {
   id: string;
@@ -84,6 +102,9 @@ export interface NormalizedMessage {
   // Cursor-specific ordering
   sequence?: number;
   rowid?: number;
+  // Delegation (v0.3): orchestrator→worker exchange lifecycle.
+  event?: 'brief' | 'running' | 'result';
+  exchange?: DelegationExchange;
 }
 
 // ─── Per-session slot ────────────────────────────────────────────────────────
@@ -612,6 +633,29 @@ export function useSessionStore() {
   }, [getSlot, notify]);
 
   /**
+   * Insert a realtime message, or replace the existing one with the same id.
+   * Used for events that update a single card in place across several frames
+   * (delegation: brief → running → result all share one id).
+   */
+  const upsertRealtime = useCallback((sessionId: string, msg: NormalizedMessage) => {
+    const slot = getSlot(sessionId);
+    const normalizedMessage = msg.sessionId === sessionId ? msg : { ...msg, sessionId };
+    const idx = slot.realtimeMessages.findIndex((m) => m.id === normalizedMessage.id);
+    if (idx >= 0) {
+      slot.realtimeMessages = [...slot.realtimeMessages];
+      slot.realtimeMessages[idx] = normalizedMessage;
+    } else {
+      let updated = [...slot.realtimeMessages, normalizedMessage];
+      if (updated.length > MAX_REALTIME_MESSAGES) {
+        updated = updated.slice(-MAX_REALTIME_MESSAGES);
+      }
+      slot.realtimeMessages = updated;
+    }
+    recomputeMergedIfNeeded(slot);
+    notify(sessionId);
+  }, [getSlot, notify]);
+
+  /**
    * Re-fetch serverMessages from the provider sessions endpoint.
    */
   const refreshFromServer = useCallback(async (
@@ -753,6 +797,7 @@ export function useSessionStore() {
     fetchMore,
     appendRealtime,
     appendRealtimeBatch,
+    upsertRealtime,
     refreshFromServer,
     setActiveSession,
     setStatus,
@@ -764,7 +809,7 @@ export function useSessionStore() {
     getSessionSlot,
   }), [
     getSlot, has, fetchFromServer, fetchMore,
-    appendRealtime, appendRealtimeBatch, refreshFromServer,
+    appendRealtime, appendRealtimeBatch, upsertRealtime, refreshFromServer,
     setActiveSession, setStatus, isStale, updateStreaming, finalizeStreaming,
     clearRealtime, getMessages, getSessionSlot,
   ]);

@@ -1,4 +1,16 @@
 {
+  "delegation": {
+    "toWorker": "Delegated to worker",
+    "running": "Worker executing…",
+    "result": "Worker result",
+    "workerSession": "Worker session",
+    "emptyResult": "(no output)",
+    "exit": "exit {{code}}",
+    "status_pending": "queued",
+    "status_running": "running",
+    "status_done": "done",
+    "status_error": "error"
+  },
   "codeBlock": {
     "copy": "Copy",
     "copied": "Copied",

@@ -243,6 +243,18 @@ export function normalizedToChatMessages(messages: NormalizedMessage[]): ChatMes
         }
         break;
 
+      case 'delegation':
+        if (msg.exchange) {
+          converted.push({
+            type: 'delegation',
+            timestamp: msg.timestamp,
+            isDelegation: true,
+            delegationEvent: msg.event,
+            delegationExchange: msg.exchange,
+          });
+        }
+        break;
+
       // stream_end, complete, status, permission_*, session_created
       // are control events — not rendered as messages
       case 'stream_end':

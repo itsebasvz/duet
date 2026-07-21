@@ -207,6 +207,14 @@ export function useChatRealtimeHandlers({
         return;
       }
 
+      // --- Delegation: one card per exchange, updated in place across frames ---
+      if (msg.kind === 'delegation') {
+        if (sid) {
+          sessionStore.upsertRealtime(sid, msg as unknown as NormalizedMessage);
+        }
+        return;
+      }
+
       // --- All other messages: route to store ---
       const shouldPersist =
         msg.kind !== 'complete'

@@ -4,6 +4,7 @@ import type {
   MarkSessionProcessing,
   SessionActivityMap,
 } from '../../../hooks/useSessionProtection';
+import type { DelegationExchange } from '../../../stores/useSessionStore';
 
 export type Provider = LLMProvider;
 
@@ -62,6 +63,9 @@ export interface ChatMessage {
     currentToolIndex: number;
     isComplete: boolean;
   };
+  isDelegation?: boolean;
+  delegationEvent?: 'brief' | 'running' | 'result';
+  delegationExchange?: DelegationExchange;
   [key: string]: unknown;
 }
 
