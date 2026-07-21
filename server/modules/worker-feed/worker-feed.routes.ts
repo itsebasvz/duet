@@ -3,6 +3,7 @@ import express from 'express';
 import {
   getMessages,
   getSession,
+  getSessionDiff,
   getStateDbPath,
   listSessions,
   startTail,
@@ -46,6 +47,14 @@ router.get('/sessions/:id', (req, res) => {
 router.get('/sessions/:id/messages', (req, res) => {
   try {
     res.json({ success: true, data: getMessages(req.params.id) });
+  } catch (error) {
+    fail(res, error);
+  }
+});
+
+router.get('/sessions/:id/diff', async (req, res) => {
+  try {
+    res.json({ success: true, data: await getSessionDiff(req.params.id) });
   } catch (error) {
     fail(res, error);
   }

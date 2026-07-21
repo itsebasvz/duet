@@ -1,6 +1,8 @@
+import { execFile } from 'node:child_process';
 import fsSync from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { promisify } from 'node:util';
 
 import Database from 'better-sqlite3';
 
@@ -96,6 +98,14 @@ export type ParsedToolCall = {
   id: string | null;
   name: string | null;
   arguments: unknown;
+};
+
+export type WorkerSessionDiff = {
+  available: boolean;
+  cwd: string | null;
+  isRepo: boolean;
+  diff: string | null;
+  error?: string;
 };
 
 export type WorkerFeedMessage = {
@@ -296,6 +306,51 @@ export function getMessages(sessionId: string): WorkerFeedMessage[] {
     return [];
   } finally {
     db.close();
+  }
+}
+
+const execFileAsync = promisify(execFile);
+const GIT_MAX_BUFFER = 12 * 1024 * 1024;
+
+async function runGit(cwd: string, args: string[]): Promise<string> {
+  const { stdout } = await execFileAsync('git', args, { cwd, maxBuffer: GIT_MAX_BUFFER });
+  return stdout;
+}
+
+/**
+ * Working-tree diff for a worker session's cwd. The path is read from state.db
+ * (never client input) and git runs with a fixed argument list and no shell, so
+ * there is no injection surface. Untracked files are excluded — this is the
+ * tracked-changes view (`git diff HEAD`). Non-repo or missing cwd resolves to
+ * isRepo:false rather than an error.
+ */
+export async function getSessionDiff(sessionId: string): Promise<WorkerSessionDiff> {
+  const session = getSession(sessionId);
+  if (!session) {
+    return { available: false, cwd: null, isRepo: false, diff: null };
+  }
+  const cwd = session.cwd;
+  if (!cwd) {
+    return { available: true, cwd: null, isRepo: false, diff: null };
+  }
+  try {
+    await runGit(cwd, ['rev-parse', '--is-inside-work-tree']);
+  } catch {
+    return { available: true, cwd, isRepo: false, diff: null };
+  }
+  try {
+    let args = ['diff'];
+    try {
+      await runGit(cwd, ['rev-parse', '--verify', 'HEAD']);
+      args = ['diff', 'HEAD'];
+    } catch {
+      // Repo with no commits yet — diff the index/worktree instead.
+    }
+    return { available: true, cwd, isRepo: true, diff: await runGit(cwd, args) };
+  } catch (error) {
+    warn('getSessionDiff', error);
+    const message = error instanceof Error ? error.message : String(error);
+    return { available: true, cwd, isRepo: true, diff: null, error: message };
   }
 }
 

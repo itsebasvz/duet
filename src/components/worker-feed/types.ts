@@ -25,6 +25,14 @@ export type ParsedToolCall = {
   arguments: unknown;
 };
 
+export type WorkerSessionDiff = {
+  available: boolean;
+  cwd: string | null;
+  isRepo: boolean;
+  diff: string | null;
+  error?: string;
+};
+
 export type WorkerFeedMessageKind = 'user' | 'assistant_text' | 'tool_call' | 'tool_result' | 'meta';
 
 export type WorkerFeedMessage = {

@@ -1,10 +1,11 @@
-import { Activity, RefreshCw } from 'lucide-react';
+import { Activity, GitBranch, RefreshCw } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
 import { useWorkerFeed } from '../hooks/useWorkerFeed';
 import { useWorkerSessions } from '../hooks/useWorkerSessions';
 import type { WorkerSessionSummary } from '../types';
 
+import WorkerDiffView from './WorkerDiffView';
 import WorkerFeedMessageItem from './WorkerFeedMessageItem';
 
 function relativeTime(epochSeconds: number): string {
@@ -117,6 +118,48 @@ function Feed({ sessionId }: { sessionId: string }) {
   );
 }
 
+function ViewToggle({
+  view,
+  onChange,
+}: {
+  view: 'feed' | 'diff';
+  onChange: (v: 'feed' | 'diff') => void;
+}) {
+  const btn = (v: 'feed' | 'diff', label: string, Icon: typeof Activity) => (
+    <button
+      onClick={() => onChange(v)}
+      className={`inline-flex items-center gap-1.5 rounded px-2 py-1 text-xs font-medium transition-colors ${
+        view === v ? 'bg-worker-wash text-worker' : 'text-muted-foreground hover:text-foreground'
+      }`}
+    >
+      <Icon className="h-3.5 w-3.5" />
+      {label}
+    </button>
+  );
+  return (
+    <div className="flex items-center gap-1 border-b border-border px-3 py-1.5">
+      {btn('feed', 'Feed', Activity)}
+      {btn('diff', 'Diff', GitBranch)}
+    </div>
+  );
+}
+
+function SessionPane({ sessionId }: { sessionId: string }) {
+  const [view, setView] = useState<'feed' | 'diff'>('feed');
+  return (
+    <div className="flex h-full flex-col">
+      <ViewToggle view={view} onChange={setView} />
+      <div className="min-h-0 flex-1">
+        {view === 'feed' ? (
+          <Feed sessionId={sessionId} />
+        ) : (
+          <WorkerDiffView sessionId={sessionId} active />
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function WorkerFeedPanel({ isVisible }: { isVisible: boolean }) {
   const { sessions, available, loading, refresh } = useWorkerSessions(isVisible);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -166,7 +209,7 @@ export default function WorkerFeedPanel({ isVisible }: { isVisible: boolean }) {
       </aside>
       <div className="min-w-0 flex-1">
         {selectedId ? (
-          <Feed sessionId={selectedId} />
+          <SessionPane sessionId={selectedId} />
         ) : (
           <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
             Select a session to view worker activity.
