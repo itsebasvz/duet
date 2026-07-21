@@ -18,8 +18,9 @@ export const hermesDriver: WorkerDriver = {
   label: 'Hermes',
   invoke: {
     command: 'hermes',
-    // `-q` quiet (final output only), `-Q` non-interactive. Brief is positional.
-    args: ['chat', '-q', '-Q', '{brief}'],
+    // `-Q` quiet (final output only); `-q <brief>` runs a single non-interactive
+    // query. The brief is the argument to `-q`, so it must stay adjacent to it.
+    args: ['chat', '-Q', '-q', '{brief}'],
     // Records as the session `source`, letting the worker tell duet from the user.
     sourceTag: { flag: '--source', value: 'duet' },
     briefOnStdin: false,

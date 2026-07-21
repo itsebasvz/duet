@@ -48,12 +48,15 @@ function buildArgs(driver: WorkerDriver, brief: string): string[] {
   let taggedSource = false;
   for (const arg of args) {
     if (arg === '{brief}') {
+      // Brief first, source tag after: when the driver passes the brief as a
+      // flag argument (e.g. `-q <brief>`), it must stay adjacent to its flag —
+      // injecting `--source` between them makes the CLI swallow the flag value.
+      if (!briefOnStdin) {
+        out.push(brief);
+      }
       if (!taggedSource) {
         out.push(sourceTag.flag, sourceTag.value);
         taggedSource = true;
-      }
-      if (!briefOnStdin) {
-        out.push(brief);
       }
       continue;
     }
