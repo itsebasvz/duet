@@ -104,10 +104,16 @@ prompt duet. Nueva abstracción en `IProvider`, p.ej.
 
 ## Fases
 
-- **U0 — Spike Codex (validación viva).** Ya verificado en el `.d.ts` que el SDK
-  spawnea `codex` y acepta `config`/`env`. Falta la prueba viva: `new Codex({
-  config: { mcp_servers: { … } } })` contra un MCP dummy y confirmar que el modelo
-  llama al tool. Gate antes de construir.
+- **U0 — Spike Codex (validación viva). ✅ HECHO (2026-07-21).** Confirmado en vivo:
+  `new Codex({ config: { mcp_servers: { duetdummy } } })` (inyección
+  per-invocación, sin tocar `~/.codex/config.toml`) → el modelo alcanzó el server
+  inyectado y llamó `duet_ping`, devolviendo el marker. Repro en
+  `docs/spikes/u0-codex-mcp/`.
+  **Gotcha para U4:** los MCP tool-calls se **cancelan** con `sandboxMode:
+  'read-only'` (evento `error: "user cancelled MCP tool call"`, status `failed`);
+  con `approvalPolicy: 'never'` + `sandboxMode: 'danger-full-access'` completan
+  ok. Hay que elegir el sandbox del orquestador que permita el call a `delegate`
+  (probar si `workspace-write` basta; `read-only` no sirve).
 - **U1 — Handler `delegate` transport-agnóstico.** Refactor de
   `delegate.service.ts`: separar la lógica del wrapper `createSdkMcpServer`.
   Claude sigue idéntico (su wrapper llama al handler).
