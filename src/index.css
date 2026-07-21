@@ -42,18 +42,18 @@
     --destructive-foreground: 60 12.5% 96.9%;
     --border: 50 11.1% 89.4%;          /* Hairline #e7e6e1 */
     --input: 60 1.4% 71.4%;            /* Mist #b7b7b5 */
-    --ring: 155 14.2% 49.8%;           /* Verdigris #6d9182 */
+    --ring: 15 53% 48%;                /* Clay #bd5d3a */
     --radius: 0.5rem;
 
     /* duet — acentos de agente y funcionales (DESIGN.md) */
-    --accent-orchestrator: 155 14.2% 49.8%;      /* Verdigris #6d9182 */
-    --accent-orchestrator-wash: 150 16.7% 92.9%; /* #eaf0ed */
-    --accent-worker: 34.6 36.8% 51%;             /* Ochre #b08954 */
-    --accent-worker-wash: 36.7 42.9% 91.8%;      /* #f3ece1 */
+    --accent-orchestrator: 15 53% 48%;           /* Clay #bd5d3a */
+    --accent-orchestrator-wash: 16 55% 92%;      /* #f6e7e0 */
+    --accent-worker: 158.3 14.2% 49.8%;          /* Verdigris #6d9182 */
+    --accent-worker-wash: 150 16.7% 92.9%;       /* #eaf0ed */
     --surface-sunken: 45 11.1% 92.9%;            /* terminal (light = nested) */
     --fn-success: 121.6 14.9% 48.8%;             /* Moss #6a8f6b */
     --fn-error: 5.3 40.2% 50.2%;                 /* Brick #b3564d */
-    --fn-warning: 34.6 36.8% 51%;                /* Amber = Ochre */
+    --fn-warning: 34.6 36.8% 51%;                /* Amber #b08954 (funcional) */
     --diff-add-bg: 98.2 25.6% 91.6%;
     --diff-add-text: 120 18.2% 35.5%;
     --diff-del-bg: 9.5 44.2% 91.6%;
@@ -63,13 +63,13 @@
     --nav-glass-bg: 60 12.5% 96.9% / 0.98;
     --nav-glass-blur: 0px;
     --nav-glass-saturate: 1;
-    --nav-tab-glow: 155 14.2% 49.8% / 0;
-    --nav-tab-ring: 155 14.2% 49.8% / 0.15;
+    --nav-tab-glow: 15 53% 48% / 0;
+    --nav-tab-ring: 15 53% 48% / 0.15;
     --nav-float-shadow: 0 0% 0% / 0.04;
     --nav-float-ring: 50 11.1% 89.4% / 0.5;
     --nav-divider-color: 50 11.1% 89.4% / 0.6;
     --nav-input-bg: 45 11.1% 92.9% / 0.6;
-    --nav-input-focus-ring: 155 14.2% 49.8% / 0.22;
+    --nav-input-focus-ring: 15 53% 48% / 0.22;
 
     /* Safe area CSS variables */
     --safe-area-inset-top: env(safe-area-inset-top);
@@ -101,51 +101,51 @@
 
   /* duet dark theme (PRIMARIO) — DESIGN.md: carbón cálido, tinta clara sobre pizarra */
   .dark {
-    --background: 45 8% 9.8%;          /* Canvas #1b1a17 */
-    --foreground: 45 17.4% 91%;        /* Ink #eceae4 */
-    --card: 40 4.5% 13.1%;             /* Card #232220 */
-    --card-foreground: 45 17.4% 91%;
-    --popover: 40 4.5% 13.1%;
-    --popover-foreground: 45 17.4% 91%;
-    --primary: 45 17.4% 91%;           /* botón primario = filled light */
-    --primary-foreground: 45 8% 9.8%;
-    --secondary: 48 6.2% 15.9%;        /* Nested #2b2a26 */
-    --secondary-foreground: 45 7.8% 69.8%; /* Graphite #b8b5ac */
-    --muted: 48 6.2% 15.9%;
-    --muted-foreground: 45 4.9% 51.8%; /* Ashen #8a877e */
-    --accent: 48 6.2% 15.9%;
-    --accent-foreground: 45 17.4% 91%;
+    --background: 42 4% 14.5%;         /* Canvas #262523 (gris cálido Claude) */
+    --foreground: 45 22% 91%;          /* Ink #efece3 */
+    --card: 45 5% 17.6%;               /* Card #2f2e2b */
+    --card-foreground: 45 22% 91%;
+    --popover: 45 5% 17.6%;
+    --popover-foreground: 45 22% 91%;
+    --primary: 45 22% 91%;             /* botón primario = filled light */
+    --primary-foreground: 42 4% 14.5%;
+    --secondary: 48 7% 19.4%;          /* Nested #35342e */
+    --secondary-foreground: 45 9% 74%; /* Graphite #c2bfb6 */
+    --muted: 48 7% 19.4%;
+    --muted-foreground: 46 8% 54%;     /* Ashen #8f8d83 */
+    --accent: 48 7% 19.4%;
+    --accent-foreground: 45 22% 91%;
     --destructive: 6.3 49.7% 62.5%;    /* Brick #cf7a70 */
-    --destructive-foreground: 45 8% 9.8%;
-    --border: 42.9 6.4% 21.4%;         /* Hairline #3a3833 */
-    --input: 42.9 5% 27.6%;            /* Mist #4a4843 */
-    --ring: 158.3 19.1% 63.1%;         /* Verdigris #8fb3a6 */
+    --destructive-foreground: 42 4% 14.5%;
+    --border: 48 6% 23.5%;             /* Hairline #3f3e39 */
+    --input: 48 6% 31%;                /* Mist #52514b */
+    --ring: 15 63% 60%;                /* Clay #d97757 */
 
     /* duet — acentos de agente y funcionales (DESIGN.md) */
-    --accent-orchestrator: 158.3 19.1% 63.1%;    /* Verdigris #8fb3a6 */
-    --accent-orchestrator-wash: 156.9 14.6% 17.5%; /* #26332e */
-    --accent-worker: 36.3 50% 62.4%;             /* Ochre #cfa96f */
-    --accent-worker-wash: 37.9 22.9% 16.3%;      /* #332c20 */
-    --surface-sunken: 45 10% 7.8%;               /* terminal #161512 */
+    --accent-orchestrator: 15 63% 60%;           /* Clay #d97757 (voz de Claude) */
+    --accent-orchestrator-wash: 16 29% 17%;      /* #38271f */
+    --accent-worker: 158.3 19.1% 63.1%;          /* Verdigris #8fb3a6 */
+    --accent-worker-wash: 156.9 14.6% 17.5%;     /* #26332e */
+    --surface-sunken: 42 6% 9.6%;                /* terminal #1a1917 */
     --fn-success: 120 17.3% 62.5%;               /* Moss #8fb08f */
     --fn-error: 6.3 49.7% 62.5%;                 /* Brick #cf7a70 */
-    --fn-warning: 36.3 50% 62.4%;                /* Amber = Ochre */
+    --fn-warning: 36.3 50% 62.4%;                /* Amber #cfa96f (funcional) */
     --diff-add-bg: 98.8 21.5% 15.5%;
     --diff-add-text: 99.6 27.8% 66.9%;
     --diff-del-bg: 9 24.4% 16.1%;
     --diff-del-text: 7.6 45.1% 65.7%;
 
     /* Nav design tokens — sin glassmorphism, sin sombras (elevación por superficie) */
-    --nav-glass-bg: 40 4.5% 13.1% / 0.98;
+    --nav-glass-bg: 45 5% 17.6% / 0.98;
     --nav-glass-blur: 0px;
     --nav-glass-saturate: 1;
-    --nav-tab-glow: 158.3 19.1% 63.1% / 0;
-    --nav-tab-ring: 158.3 19.1% 63.1% / 0.18;
+    --nav-tab-glow: 15 63% 60% / 0;
+    --nav-tab-ring: 15 63% 60% / 0.18;
     --nav-float-shadow: 0 0% 0% / 0;
-    --nav-float-ring: 42.9 6.4% 21.4% / 0.4;
-    --nav-divider-color: 42.9 6.4% 21.4% / 0.5;
-    --nav-input-bg: 48 6.2% 15.9% / 0.6;
-    --nav-input-focus-ring: 158.3 19.1% 63.1% / 0.25;
+    --nav-float-ring: 48 6% 23.5% / 0.4;
+    --nav-divider-color: 48 6% 23.5% / 0.5;
+    --nav-input-bg: 48 7% 19.4% / 0.6;
+    --nav-input-focus-ring: 15 63% 60% / 0.25;
   }
 }
 
