@@ -77,9 +77,17 @@ export function normalizedToChatMessages(
   // over; during a live run the frame wins and we skip the persisted copy to
   // avoid a doubled card.
   const liveDelegationBriefs = new Set<string>();
+  // Delegate tool calls present in the loaded window. The message list is a
+  // recent *suffix* of the conversation (older pages load lazily), so this can
+  // be fewer than the full exchange history — see the tail-align below.
+  let loadedDelegateCount = 0;
   for (const msg of messages) {
     if (msg.kind === 'tool_use' && msg.toolId) {
       toolUseIds.add(msg.toolId);
+    }
+
+    if (msg.kind === 'tool_use' && msg.toolName === 'mcp__duet__delegate') {
+      loadedDelegateCount += 1;
     }
 
     if (msg.kind === 'tool_result' && msg.toolId) {
@@ -91,9 +99,13 @@ export function normalizedToChatMessages(
     }
   }
 
-  // The nth `mcp__duet__delegate` tool call maps to the nth persisted exchange:
-  // both are chronological and every delegate call writes exactly one row.
-  let delegateIdx = 0;
+  // Delegate calls and persisted exchanges are both chronological and 1:1, but
+  // `delegationExchanges` is the FULL history from the DB while `messages` may
+  // hold only a recent page. Align the loaded delegate cards to the TAIL of the
+  // exchanges so the newest card maps to the newest exchange. Pairing from index
+  // 0 would map recent cards onto the oldest rows (e.g. showing a long-gone
+  // failed run under a brief that actually succeeded).
+  let delegateIdx = Math.max(0, delegationExchanges.length - loadedDelegateCount);
 
   for (const msg of messages) {
     const sharedMetadata = {
