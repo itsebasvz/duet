@@ -65,3 +65,30 @@ discards good work. Surfacing partial worker output on failure is deferred.
 **Suspected root cause.** Upstream (Console Go → Kimi) intermittently rejects a
 multi-turn payload (tool_use/tool_result + reasoning) with 400. Needs gateway-side
 logs to confirm; not a duet or Hermes-logic bug.
+
+## Orquestador Codex: `delegate` MCP solo funciona bajo `danger-full-access`
+
+**Status:** worked around — delegación Codex atada a Bypass Permissions.
+
+**Problema.** Un run de Codex no-interactivo (SDK `runStreamed`, que envuelve
+`codex exec`) **auto-cancela toda llamada a herramienta MCP** con
+`user cancelled MCP tool call` salvo cuando el sandbox es `danger-full-access`.
+Verificado contra codex 0.144.1, transporte HTTP y stdio, con:
+`sandbox_mode=read-only|workspace-write` × `approval_policy=untrusted|on-request|
+on-failure|never` × `mcp_servers.<x>.default_tools_approval_mode=auto` ×
+`sandbox_workspace_write.network_access=true`. **Todas cancelan** menos
+`danger-full-access`. Bajo workspace-write la sesión MCP *sí* se abre (el server
+acuña session id), pero la *llamada* a la tool se deniega en el gate de aprobación.
+
+**Por qué no hay término medio.** El SDK (`ThreadOptions`/`TurnOptions`) no expone
+callback de aprobación per-call — `approvalPolicy` es solo un flag. No hay forma de
+auto-aprobar únicamente `delegate` dejando el bash de Codex sandboxeado.
+
+**Decisión 2026-07-21.** Activar la delegación Codex solo en modo **Bypass
+Permissions** (que ya mapea a `danger-full-access`). En default/acceptEdits el run
+queda sandboxeado y la delegación off — en vez de ampliar en silencio el sandbox
+elegido por el usuario (que dejaba a Codex corriendo bash sin restricción).
+
+**Canal del framing duet.** Va por `config.developer_instructions` (rol developer),
+no prepend al turno del usuario — si no, se persiste en el rollout de la sesión y la
+UI lo renderiza como mensaje del propio usuario.
