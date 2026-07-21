@@ -26,6 +26,7 @@ class ClaudeOrchestrator implements IProviderOrchestrator {
 
   buildLaunch(ctx: OrchestratorRunContext): OrchestratorLaunch {
     const server = buildDuetMcpServer({
+      provider: 'claude',
       getSessionId: ctx.getSessionId,
       defaultCwd: ctx.cwd,
       send: ctx.send,

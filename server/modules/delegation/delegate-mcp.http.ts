@@ -36,6 +36,16 @@ import { getOrchestratorRun } from './orchestrator-run.registry.js';
 /** Live transports keyed by MCP session id; entries are removed on close. */
 const transportsBySession = new Map<string, StreamableHTTPServerTransport>();
 
+/**
+ * Loopback URL a provider's MCP client points at for one run. The token lives in
+ * the path (see the router below), so this is the whole credential — keep it on
+ * 127.0.0.1. Port mirrors the backend's own `SERVER_PORT` bind (default 3001).
+ */
+export function buildDelegateMcpUrl(token: string): string {
+  const port = process.env.SERVER_PORT || '3001';
+  return `http://127.0.0.1:${port}/mcp/${token}`;
+}
+
 function isLoopback(req: express.Request): boolean {
   const address = req.socket.remoteAddress ?? '';
   return address === '127.0.0.1' || address === '::1' || address === '::ffff:127.0.0.1';

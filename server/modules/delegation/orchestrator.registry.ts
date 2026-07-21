@@ -7,10 +7,12 @@
  */
 
 import { claudeOrchestrator } from '@/modules/delegation/orchestrators/claude.orchestrator.js';
+import { codexOrchestrator } from '@/modules/delegation/orchestrators/codex.orchestrator.js';
 import type { IProviderOrchestrator } from '@/modules/delegation/orchestrator.types.js';
 
 const orchestrators: Record<string, IProviderOrchestrator> = {
   claude: claudeOrchestrator,
+  codex: codexOrchestrator,
 };
 
 /** Returns a provider's orchestrator, or null if it cannot orchestrate yet. */

@@ -20,6 +20,7 @@ import { notifyRunFailed, notifyRunStopped } from './services/notification-orche
 import { sessionsService } from './modules/providers/services/sessions.service.js';
 import { providerAuthService } from './modules/providers/services/provider-auth.service.js';
 import { providerModelsService } from './modules/providers/services/provider-models.service.js';
+import { resolveOrchestrator } from './modules/delegation/index.js';
 import { createCompleteMessage, createNormalizedMessage } from './shared/utils.js';
 
 const activeCodexSessions = new Map();
@@ -254,16 +255,48 @@ export async function queryCodex(command, options = {}, ws) {
   let capturedSessionId = sessionId;
   let sessionCreatedSent = false;
   let terminalFailure = null;
+  let duetLaunch = null;
   const abortController = new AbortController();
 
   try {
-    codex = new Codex();
+    // Wire the duet delegation seam. Codex reaches `delegate` over the backend's
+    // loopback MCP HTTP endpoint (token in the URL path), so we inject the server
+    // via `new Codex({ config: { mcp_servers } })`. MCP tool calls are cancelled
+    // under a read-only sandbox, so force a writable sandbox + no approval prompt
+    // (see U0 gotcha). CODEX_HOME is untouched to preserve the user's auth, so the
+    // duet framing rides in on the first turn of a fresh thread only.
+    let codexOptions;
+    let sandboxModeForRun = sandboxMode;
+    let approvalPolicyForRun = approvalPolicy;
+    let duetFraming = null;
+    if (process.env.DUET_DELEGATION === '1') {
+      const orchestrator = resolveOrchestrator('codex');
+      if (orchestrator) {
+        duetLaunch = orchestrator.buildLaunch({
+          getSessionId: () => capturedSessionId || sessionId || null,
+          cwd: workingDirectory,
+          send: (frame) => sendMessage(ws, createNormalizedMessage({ ...frame, id: `delegation_${frame.exchange.id}` })),
+        });
+        if (duetLaunch.mcp.transport === 'http') {
+          codexOptions = { config: { mcp_servers: { duet: { url: duetLaunch.mcp.url } } } };
+        }
+        approvalPolicyForRun = 'never';
+        if (sandboxModeForRun === 'read-only') {
+          sandboxModeForRun = 'workspace-write';
+        }
+        if (!sessionId) {
+          duetFraming = duetLaunch.systemPromptAppend;
+        }
+      }
+    }
+
+    codex = new Codex(codexOptions);
 
     const threadOptions = {
       workingDirectory,
       skipGitRepoCheck: true,
-      sandboxMode,
-      approvalPolicy,
+      sandboxMode: sandboxModeForRun,
+      approvalPolicy: approvalPolicyForRun,
       model: resolvedModel,
       modelReasoningEffort: resolvedEffort,
     };
@@ -292,10 +325,14 @@ export async function queryCodex(command, options = {}, ws) {
     }
 
     // Execute with streaming. Turns with image attachments send structured
-    // input items so Codex reads the images from their local asset paths.
-    const turnInput = normalizeImageDescriptors(images).length > 0
-      ? buildCodexInputItems(command, images, workingDirectory)
+    // input items so Codex reads the images from their local asset paths. When
+    // duet framing is present (fresh thread only), it prepends the first turn.
+    const effectiveCommand = duetFraming
+      ? `${duetFraming}\n\n---\nThe user's message follows.\n---\n${command}`
       : command;
+    const turnInput = normalizeImageDescriptors(images).length > 0
+      ? buildCodexInputItems(effectiveCommand, images, workingDirectory)
+      : effectiveCommand;
     const streamedTurn = await thread.runStreamed(turnInput, {
       signal: abortController.signal
     });
@@ -418,6 +455,8 @@ export async function queryCodex(command, options = {}, ws) {
     }
 
   } finally {
+    // Revoke the run's delegation token so a finished run can no longer delegate.
+    duetLaunch?.dispose();
     // Update session status
     if (capturedSessionId) {
       const session = activeCodexSessions.get(capturedSessionId);

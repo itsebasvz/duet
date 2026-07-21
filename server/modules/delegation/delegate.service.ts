@@ -17,6 +17,7 @@ import { z } from 'zod';
 
 import { delegationExchangesDb, delegationWorkerMessagesDb } from '@/modules/database/index.js';
 import type { DelegationExchangeRow } from '@/modules/database/index.js';
+import type { LLMProvider } from '@/shared/types.js';
 import { getMessages, hermesDriver, invokeWorker } from '@/modules/worker-feed/index.js';
 
 import { WORKER_BRIEF_PREAMBLE } from './duet-prompt.js';
@@ -24,7 +25,8 @@ import { WORKER_BRIEF_PREAMBLE } from './duet-prompt.js';
 /** A live delegation event pushed to the client for a single exchange. */
 export type DelegationFrame = {
   kind: 'delegation';
-  provider: 'claude';
+  /** Orchestrator provider this exchange belongs to (drives the chat card's stream). */
+  provider: LLMProvider;
   /** Orchestrator session this exchange belongs to. */
   sessionId: string;
   /** Lifecycle stage: brief sent → worker running → final result. */
@@ -34,7 +36,9 @@ export type DelegationFrame = {
 
 /** Everything the tool needs from the live orchestrator run. */
 export type DelegateContext = {
-  /** The orchestrator session id, resolved lazily (set once Claude announces it). */
+  /** Which provider is orchestrating this run; stamped onto every frame. */
+  provider: LLMProvider;
+  /** The orchestrator session id, resolved lazily (set once the provider announces it). */
   getSessionId: () => string | null;
   /** Working directory used when the brief omits `cwd`. */
   defaultCwd?: string;
@@ -126,7 +130,7 @@ export async function runDelegation(args: DelegateArgs, ctx: DelegateContext): P
   const emit = (event: DelegationFrame['event']) => {
     const exchange = delegationExchangesDb.getById(id);
     if (exchange) {
-      ctx.send({ kind: 'delegation', provider: 'claude', sessionId: claudeSessionId, event, exchange });
+      ctx.send({ kind: 'delegation', provider: ctx.provider, sessionId: claudeSessionId, event, exchange });
     }
   };
 
