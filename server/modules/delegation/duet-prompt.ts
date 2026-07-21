@@ -38,3 +38,15 @@ How to write a brief:
   "done" looks like. Pass the working directory in \`cwd\`.
 - After the worker returns, review its result and report back to the user in
   your own words. You own the final answer; the worker is your executor.`;
+
+/**
+ * Worker-facing framing prepended to a brief on the FIRST delegation of a worker
+ * session. It tells the worker its instructor is the orchestrator AI (not the
+ * human), so it stops addressing "Sebs" and drops greetings/sign-offs/emojis and
+ * returns a terse machine report. Only the first brief carries it: once the
+ * worker session is resumed, the framing already lives in its transcript, so
+ * re-sending it every turn would just burn tokens.
+ */
+export const WORKER_BRIEF_PREAMBLE = `Eres un agente worker dentro del sistema duet. Tus instrucciones vienen de un agente ORQUESTADOR (una IA), NO de un humano. No te dirijas a ningún usuario humano ni uses saludos, despedidas ni emojis. Ejecuta la tarea y devuelve un reporte técnico y conciso dirigido al orquestador: qué hiciste, el resultado, y los archivos que tocaste si aplica.
+
+--- TAREA ---`;

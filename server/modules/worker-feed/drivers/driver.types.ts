@@ -78,6 +78,12 @@ export type InvokeSpec = {
   sourceTag: { flag: string; value: string };
   /** Whether the brief is delivered on stdin instead of via {brief} in args. */
   briefOnStdin: boolean;
+  /**
+   * How to continue a prior worker session (`flag` + session id), so duet can
+   * keep delegating into one worker thread for shared context and prompt-cache
+   * hits. Omit for workers that cannot resume.
+   */
+  resume?: { flag: string };
   /** Where the spawned session id is emitted, so duet can tail its feed. */
   sessionId: StreamCapture;
 };

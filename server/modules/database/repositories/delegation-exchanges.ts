@@ -90,6 +90,24 @@ export const delegationExchangesDb = {
     return row ?? null;
   },
 
+  /**
+   * The worker session to resume for this orchestrator session: the most recent
+   * exchange that got far enough to announce a worker session id. Lets duet keep
+   * delegating into one worker thread (shared context + prompt-cache hits)
+   * instead of spawning a cold worker per brief. NULL when none exists yet.
+   */
+  latestWorkerSessionId(claudeSessionId: string): string | null {
+    const db = getConnection();
+    const row = db
+      .prepare(
+        `SELECT worker_session_id FROM delegation_exchanges
+         WHERE claude_session_id = ? AND worker_session_id IS NOT NULL
+         ORDER BY created_at DESC LIMIT 1`
+      )
+      .get(claudeSessionId) as { worker_session_id: string } | undefined;
+    return row?.worker_session_id ?? null;
+  },
+
   /** Exchanges for one orchestrator session, oldest first (chat order). */
   listBySession(claudeSessionId: string): DelegationExchangeRow[] {
     const db = getConnection();

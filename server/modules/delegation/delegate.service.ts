@@ -19,6 +19,8 @@ import { delegationExchangesDb } from '@/modules/database/index.js';
 import type { DelegationExchangeRow } from '@/modules/database/index.js';
 import { hermesDriver, invokeWorker } from '@/modules/worker-feed/index.js';
 
+import { WORKER_BRIEF_PREAMBLE } from './duet-prompt.js';
+
 /** A live delegation event pushed to the client for a single exchange. */
 export type DelegationFrame = {
   kind: 'delegation';
@@ -73,6 +75,14 @@ export function buildDuetMcpServer(ctx: DelegateContext) {
       }
 
       const cwd = args.cwd ?? ctx.defaultCwd ?? process.cwd();
+      // Continue this orchestrator's existing worker thread when one exists, so
+      // the worker keeps its context (no re-exploring) and the reloaded prefix
+      // hits the prompt cache. The stored `brief` stays the raw text Claude sent
+      // (clean cards); only the FIRST brief of a thread carries the identity
+      // preamble — on resume the worker already has it.
+      const resumeSessionId = delegationExchangesDb.latestWorkerSessionId(claudeSessionId);
+      const workerBrief = resumeSessionId ? args.brief : `${WORKER_BRIEF_PREAMBLE}\n${args.brief}`;
+
       const id = delegationExchangesDb.create({
         claudeSessionId,
         workerDriverId: hermesDriver.id,
@@ -90,9 +100,10 @@ export function buildDuetMcpServer(ctx: DelegateContext) {
       emit('brief');
 
       const result = await invokeWorker({
-        brief: args.brief,
+        brief: workerBrief,
         cwd,
         driver: hermesDriver,
+        resumeSessionId,
         onSessionId: (workerSessionId) => {
           delegationExchangesDb.markRunning(id, workerSessionId);
           emit('running');

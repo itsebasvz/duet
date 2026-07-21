@@ -24,6 +24,8 @@ export const hermesDriver: WorkerDriver = {
     // Records as the session `source`, letting the worker tell duet from the user.
     sourceTag: { flag: '--source', value: 'duet' },
     briefOnStdin: false,
+    // `hermes chat --resume <id>` reloads a prior session's transcript.
+    resume: { flag: '--resume' },
     // Hermes prints `session_id: <id>` to stderr so piped stdout stays clean.
     sessionId: { stream: 'stderr', pattern: 'session_id:\\s*(\\S+)' },
   },

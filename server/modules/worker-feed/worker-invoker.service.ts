@@ -33,6 +33,12 @@ export type WorkerInvokeInput = {
   brief: string;
   cwd: string;
   driver?: WorkerDriver;
+  /**
+   * Prior worker session to continue (via the driver's `resume` flag) instead of
+   * starting cold — for shared context and prompt-cache hits. Ignored when the
+   * driver declares no `resume` support.
+   */
+  resumeSessionId?: string | null;
   /** Fired once when the worker announces its session id. */
   onSessionId?: (sessionId: string) => void;
   /** Fired for each stdout chunk, for optional live surfacing. */
@@ -42,8 +48,8 @@ export type WorkerInvokeInput = {
 };
 
 /** Builds argv from the driver template, injecting the source tag + brief. */
-function buildArgs(driver: WorkerDriver, brief: string): string[] {
-  const { args, sourceTag, briefOnStdin } = driver.invoke;
+function buildArgs(driver: WorkerDriver, brief: string, resumeSessionId?: string | null): string[] {
+  const { args, sourceTag, briefOnStdin, resume } = driver.invoke;
   const out: string[] = [];
   let taggedSource = false;
   for (const arg of args) {
@@ -65,6 +71,9 @@ function buildArgs(driver: WorkerDriver, brief: string): string[] {
   if (!taggedSource) {
     out.push(sourceTag.flag, sourceTag.value);
   }
+  if (resume && resumeSessionId) {
+    out.push(resume.flag, resumeSessionId);
+  }
   return out;
 }
 
@@ -81,7 +90,7 @@ function classifyError(driver: WorkerDriver, stdout: string, exitCode: number | 
 
 export function invokeWorker(input: WorkerInvokeInput): Promise<WorkerInvokeResult> {
   const driver = input.driver ?? hermesDriver;
-  const args = buildArgs(driver, input.brief);
+  const args = buildArgs(driver, input.brief, input.resumeSessionId);
   const sessionIdRe = new RegExp(driver.invoke.sessionId.pattern);
   const sessionStream = driver.invoke.sessionId.stream;
 
