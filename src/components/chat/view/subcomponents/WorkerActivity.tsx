@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { Brain, ChevronRight, FileEdit, Loader2, Wrench } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
@@ -47,13 +47,24 @@ function createdAtEpoch(createdAt: string): number {
   return Number.isNaN(ms) ? 0 : Math.floor(ms / 1000);
 }
 
-/** Folds the flat message stream into ordered cards, pairing tool calls with their results. */
+/**
+ * Folds the flat message stream into ordered cards, pairing tool calls with
+ * their results. The Hermes session is reused across delegations, so a new
+ * `user` message mid-stream marks the next exchange's brief — stop there so
+ * each card shows only its own turn.
+ */
 function buildCards(messages: WorkerFeedMessage[]): Card[] {
   const cards: Card[] = [];
   const byCallId = new Map<string, number>();
+  let started = false;
 
   for (const m of messages) {
-    if (m.kind === 'user' || m.kind === 'meta') continue;
+    if (m.kind === 'meta') continue;
+    if (m.kind === 'user') {
+      if (started) break;
+      continue;
+    }
+    started = true;
 
     if (m.content && m.content.trim()) {
       cards.push({ kind: 'text', id: `t-${m.id}`, content: m.content });
@@ -207,18 +218,15 @@ export default function WorkerActivity({
   createdAt: string;
 }) {
   const { t } = useTranslation('chat');
-  const { messages } = useWorkerFeed(running ? workerSessionId : null);
-  const [retained, setRetained] = useState<WorkerFeedMessage[]>([]);
-
-  useEffect(() => {
-    if (messages.length) setRetained(messages);
-  }, [messages]);
+  // Load history for any session (so a finished delegation still renders its
+  // trace); only live-tail while the run is active.
+  const { messages } = useWorkerFeed(workerSessionId, { tail: running });
 
   const since = useMemo(() => createdAtEpoch(createdAt), [createdAt]);
   const cards = useMemo(() => {
-    const scoped = since === 0 ? retained : retained.filter((m) => m.timestamp >= since);
+    const scoped = since === 0 ? messages : messages.filter((m) => m.timestamp >= since);
     return buildCards(scoped);
-  }, [retained, since]);
+  }, [messages, since]);
 
   if (running && cards.length === 0) {
     return (

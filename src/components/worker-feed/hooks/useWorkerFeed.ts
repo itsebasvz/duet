@@ -11,14 +11,21 @@ function tailUrl(sessionId: string): string {
 /**
  * Loads a session's message history, then keeps it live by subscribing to the
  * `worker_feed` websocket frames the server emits while tailing state.db.
- * Starts the server-side tail on mount and releases it on unmount.
+ *
+ * History always loads for any `sessionId` (so a finished delegation can still
+ * render its trace). The server-side tail — the live poller that streams new
+ * rows — is opt-in via `tail` (default true): pass `tail: false` for a
+ * completed session so we don't churn a poller on a run that already ended.
  */
-export function useWorkerFeed(sessionId: string | null) {
+export function useWorkerFeed(sessionId: string | null, opts?: { tail?: boolean }) {
+  const tail = opts?.tail ?? true;
   const { subscribe } = useWebSocket();
   const [messages, setMessages] = useState<WorkerFeedMessage[]>([]);
   const [session, setSession] = useState<WorkerSessionSummary | null>(null);
   const [loading, setLoading] = useState(false);
 
+  // History: (re)load whenever the session changes. Independent of tailing so a
+  // done exchange still shows its full trace.
   useEffect(() => {
     if (!sessionId) {
       setMessages([]);
@@ -42,7 +49,6 @@ export function useWorkerFeed(sessionId: string | null) {
         }
         setMessages(Array.isArray(msgJson?.data) ? msgJson.data : []);
         setSession(sesJson?.data ?? null);
-        authenticatedFetch(tailUrl(sessionId), { method: 'POST' }).catch(() => {});
       } catch (error) {
         console.error('[WorkerFeed] failed to load session:', error);
       } finally {
@@ -54,9 +60,21 @@ export function useWorkerFeed(sessionId: string | null) {
 
     return () => {
       cancelled = true;
-      authenticatedFetch(tailUrl(sessionId), { method: 'DELETE' }).catch(() => {});
     };
   }, [sessionId]);
+
+  // Live tail: only while requested (i.e. the run is active). Starting a tail on
+  // a shared session that another mounted card is already tailing is fine; the
+  // server ref-counts, and releasing here won't stop a still-running tail.
+  useEffect(() => {
+    if (!sessionId || !tail) {
+      return;
+    }
+    authenticatedFetch(tailUrl(sessionId), { method: 'POST' }).catch(() => {});
+    return () => {
+      authenticatedFetch(tailUrl(sessionId), { method: 'DELETE' }).catch(() => {});
+    };
+  }, [sessionId, tail]);
 
   useEffect(() => {
     if (!sessionId) {
