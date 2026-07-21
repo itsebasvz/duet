@@ -7,7 +7,7 @@ import { providerModelsService } from '@/modules/providers/services/provider-mod
 import { providerSkillsService } from '@/modules/providers/services/skills.service.js';
 import { sessionConversationsSearchService } from '@/modules/providers/services/session-conversations-search.service.js';
 import { sessionsService } from '@/modules/providers/services/sessions.service.js';
-import { delegationExchangesDb } from '@/modules/database/index.js';
+import { delegationExchangesDb, sessionsDb } from '@/modules/database/index.js';
 import type {
   LLMProvider,
   McpScope,
@@ -635,7 +635,12 @@ router.get(
   '/sessions/:sessionId/delegations',
   asyncHandler(async (req: Request, res: Response) => {
     const sessionId = parseSessionId(req.params.sessionId);
-    const exchanges = delegationExchangesDb.listBySession(sessionId);
+    // Exchanges are keyed by the provider-native (Claude) session id, which the
+    // frontend does not hold — it passes the app session id. Map it the way the
+    // messages route does; fall back to the raw id for a direct provider-id call.
+    const session = sessionsDb.getSessionById(sessionId);
+    const providerSessionId = session?.provider_session_id ?? sessionId;
+    const exchanges = delegationExchangesDb.listBySession(providerSessionId);
     res.json(createApiSuccessResponse({ exchanges }));
   }),
 );
