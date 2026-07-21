@@ -1,10 +1,14 @@
 import { useMemo } from 'react';
-import { Brain, ChevronRight, FileEdit, Loader2, Wrench } from 'lucide-react';
+import { Brain, ChevronRight, Loader2, Wrench } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import { useWorkerFeed } from '../../../worker-feed/hooks/useWorkerFeed';
 import type { WorkerFeedMessage } from '../../../worker-feed/types';
-import { BashCommandDisplay, MarkdownContent } from '../../tools/components';
+import { BashCommandDisplay, MarkdownContent, ToolDiffViewer } from '../../tools/components';
+import { createCachedDiffCalculator } from '../../utils/messageTransforms';
+
+/** One shared, cached diff calculator for every write card in the trace. */
+const workerDiff = createCachedDiffCalculator();
 
 /**
  * Live, in-chat view of the worker's tool-calling while a delegation runs.
@@ -66,11 +70,16 @@ function buildCards(messages: WorkerFeedMessage[]): Card[] {
     }
     started = true;
 
-    if (m.content && m.content.trim()) {
-      cards.push({ kind: 'text', id: `t-${m.id}`, content: m.content });
-    }
-    if (m.reasoning && m.reasoning.trim()) {
-      cards.push({ kind: 'reasoning', id: `r-${m.id}`, content: m.reasoning });
+    // A tool_result row's `content` is the raw result JSON — it belongs in the
+    // paired call card below, never as free-standing text. Only assistant turns
+    // contribute prose/reasoning cards.
+    if (m.kind !== 'tool_result') {
+      if (m.content && m.content.trim()) {
+        cards.push({ kind: 'text', id: `t-${m.id}`, content: m.content });
+      }
+      if (m.reasoning && m.reasoning.trim()) {
+        cards.push({ kind: 'reasoning', id: `r-${m.id}`, content: m.reasoning });
+      }
     }
 
     if (m.kind === 'tool_call' && m.toolCalls) {
@@ -171,25 +180,19 @@ function WorkerCard({ card }: { card: Card }) {
   }
 
   if (card.kind === 'write') {
-    const bytes = card.result?.bytes_written;
-    const file = card.path.split('/').pop() || card.path;
+    // Hermes writes whole files (no prior content), so render as an all-additions
+    // diff — same green "New" treatment ClaudeCodeUI gives a freshly created file.
     return (
-      <NeutralCard
-        icon={<FileEdit className="h-3.5 w-3.5" />}
-        name="write_file"
-        suffix={
-          <>
-            <span className="min-w-0 flex-1 truncate font-mono text-xs text-foreground">{file}</span>
-            {typeof bytes === 'number' && (
-              <span className="flex-shrink-0 text-[10px] tabular-nums text-muted-foreground/70">{bytes} B</span>
-            )}
-          </>
-        }
-      >
-        <pre className="max-h-72 overflow-auto whitespace-pre-wrap break-all px-3 py-2 font-mono text-[11px] leading-relaxed text-muted-foreground">
-          {card.content}
-        </pre>
-      </NeutralCard>
+      <div className="max-h-96 overflow-auto">
+        <ToolDiffViewer
+          filePath={card.path}
+          oldContent=""
+          newContent={card.content}
+          createDiff={workerDiff}
+          badge="New"
+          badgeColor="green"
+        />
+      </div>
     );
   }
 
