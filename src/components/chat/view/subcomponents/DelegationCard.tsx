@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 
 import type { DelegationExchange } from '../../../../stores/useSessionStore';
 import WorkerActivity from './WorkerActivity';
+import WorkerResult from './WorkerResult';
 
 function StatusBadge({ status }: { status: DelegationExchange['status'] }) {
   const { t } = useTranslation('chat');
@@ -82,13 +83,11 @@ export default function DelegationCard({ exchange }: { exchange: DelegationExcha
       {/* Worker result */}
       {status === 'done' && (
         <div className="rounded-lg border border-worker/30 bg-worker-wash px-3 py-2 text-sm">
-          <div className="mb-1 inline-flex items-center gap-1.5 text-[11px] font-medium text-worker">
+          <div className="mb-1.5 inline-flex items-center gap-1.5 text-[11px] font-medium text-worker">
             <Inbox className="h-3 w-3" />
             {t('delegation.result')}
           </div>
-          <p className="whitespace-pre-wrap break-words text-foreground">
-            {exchange.result_text?.trim() || t('delegation.emptyResult')}
-          </p>
+          <WorkerResult text={exchange.result_text} emptyLabel={t('delegation.emptyResult')} />
         </div>
       )}
 
