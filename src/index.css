@@ -1045,3 +1045,8 @@
     }
   }
 }
+
+/* DIAGNOSTIC — remove after cache test */
+.chat-messages-pane {
+  background: #ff0000 !important;
+}
