@@ -304,6 +304,36 @@ export function getSession(sessionId: string): WorkerSessionSummary | null {
   }
 }
 
+/**
+ * Id of the newest session for `source` that started at/after `sinceEpoch`
+ * (unix seconds). This is how a freshly-spawned worker's session id is found
+ * *early*: Hermes writes the sessions row at agent-init (seconds in) but only
+ * prints the id to stderr on exit, so tailing can't wait for stdout/stderr.
+ * Polling this row instead lets the live feed start while the run is still
+ * going. Returns null when the store is absent or the row hasn't appeared yet.
+ */
+export function findSessionIdSince(source: string, sinceEpoch: number): string | null {
+  if (!stateDbExists()) {
+    return null;
+  }
+  const db = openDb();
+  try {
+    const row = db
+      .prepare(
+        `SELECT ${DRIVER.sessionParse.idColumn} AS id FROM ${DRIVER.sessionParse.table}
+           WHERE source = ? AND started_at >= ?
+           ORDER BY started_at DESC LIMIT 1`,
+      )
+      .get(source, sinceEpoch) as { id: string } | undefined;
+    return row?.id ?? null;
+  } catch (error) {
+    warn('findSessionIdSince', error);
+    return null;
+  } finally {
+    db.close();
+  }
+}
+
 const MESSAGE_COLUMNS = `
   id, role, content, tool_call_id, tool_calls, tool_name, timestamp,
   finish_reason, reasoning, reasoning_content, active, compacted

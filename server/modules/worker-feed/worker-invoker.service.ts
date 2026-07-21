@@ -2,6 +2,14 @@ import { spawn } from 'node:child_process';
 
 import { hermesDriver } from './drivers/hermes.driver.js';
 import type { WorkerDriver } from './drivers/driver.types.js';
+import { findSessionIdSince } from './worker-feed.service.js';
+
+/**
+ * How often to poll state.db for the worker's freshly-created session row while
+ * waiting for its id. Hermes writes the row ~2-4s after spawn; a sub-second
+ * cadence surfaces it promptly so the live feed starts early.
+ */
+const SESSION_POLL_MS = 400;
 
 /**
  * Spawns a worker CLI against its driver contract, supervises the process, and
@@ -93,6 +101,10 @@ export function invokeWorker(input: WorkerInvokeInput): Promise<WorkerInvokeResu
   const args = buildArgs(driver, input.brief, input.resumeSessionId);
   const sessionIdRe = new RegExp(driver.invoke.sessionId.pattern);
   const sessionStream = driver.invoke.sessionId.stream;
+  const sourceValue = driver.invoke.sourceTag.value;
+  // Marker for "which session row is ours": Hermes stamps the row's started_at
+  // at init, always after this moment, so we match rows at/after it.
+  const spawnedAt = Date.now() / 1000;
 
   return new Promise<WorkerInvokeResult>((resolve) => {
     let child;
@@ -112,6 +124,25 @@ export function invokeWorker(input: WorkerInvokeInput): Promise<WorkerInvokeResu
     let stdout = '';
     let stderr = '';
     let workerSessionId: string | null = null;
+    let sessionPoll: ReturnType<typeof setInterval> | null = null;
+
+    const stopSessionPoll = () => {
+      if (sessionPoll) {
+        clearInterval(sessionPoll);
+        sessionPoll = null;
+      }
+    };
+
+    // Announce the session id exactly once, from whichever source finds it first
+    // (early db poll, or the end-of-run stderr line as a fallback).
+    const announceSessionId = (id: string) => {
+      if (workerSessionId) {
+        return;
+      }
+      workerSessionId = id;
+      stopSessionPoll();
+      input.onSessionId?.(id);
+    };
 
     const captureSessionId = (text: string) => {
       if (workerSessionId) {
@@ -119,10 +150,23 @@ export function invokeWorker(input: WorkerInvokeInput): Promise<WorkerInvokeResu
       }
       const match = sessionIdRe.exec(text);
       if (match?.[1]) {
-        workerSessionId = match[1];
-        input.onSessionId?.(workerSessionId);
+        announceSessionId(match[1]);
       }
     };
+
+    // Get the session id early so the live feed can tail from the start. A
+    // resumed run keeps its id, so announce it immediately; a cold run's id is
+    // unknowable up front (random suffix), so poll state.db for the new row.
+    if (input.resumeSessionId) {
+      announceSessionId(input.resumeSessionId);
+    } else {
+      sessionPoll = setInterval(() => {
+        const id = findSessionIdSince(sourceValue, spawnedAt);
+        if (id) {
+          announceSessionId(id);
+        }
+      }, SESSION_POLL_MS);
+    }
 
     if (driver.invoke.briefOnStdin) {
       child.stdin?.write(input.brief);
@@ -150,6 +194,7 @@ export function invokeWorker(input: WorkerInvokeInput): Promise<WorkerInvokeResu
     input.signal?.addEventListener('abort', onAbort, { once: true });
 
     child.on('error', (error: Error) => {
+      stopSessionPoll();
       input.signal?.removeEventListener('abort', onAbort);
       resolve({
         status: 'error',
@@ -164,6 +209,7 @@ export function invokeWorker(input: WorkerInvokeInput): Promise<WorkerInvokeResu
     });
 
     child.on('close', (code: number | null) => {
+      stopSessionPoll();
       input.signal?.removeEventListener('abort', onAbort);
       if (code === driver.errorSignals.successExitCode) {
         resolve({
