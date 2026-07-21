@@ -261,12 +261,17 @@ export async function queryCodex(command, options = {}, ws) {
   try {
     // Wire the duet delegation seam. Codex reaches `delegate` over the backend's
     // loopback MCP HTTP endpoint (token in the URL path), so we inject the server
-    // via `new Codex({ config: { mcp_servers } })`. MCP tool calls are cancelled
-    // under a read-only sandbox, so force a writable sandbox + no approval prompt
-    // (see U0 gotcha). CODEX_HOME is untouched to preserve the user's auth; the
-    // duet framing rides on Codex's `developer_instructions` channel rather than
-    // the user turn — prepending it to the prompt would persist it in the session
-    // rollout and render it as the user's own message in the UI.
+    // via `new Codex({ config: { mcp_servers } })`. CODEX_HOME is untouched to
+    // preserve the user's auth; the duet framing rides on Codex's
+    // `developer_instructions` channel rather than the user turn — prepending it
+    // to the prompt would persist it in the session rollout and render as the
+    // user's own message in the UI.
+    //
+    // A non-interactive Codex run auto-denies MCP tool calls ("user cancelled MCP
+    // tool call") under every restricted sandbox: read-only, workspace-write, and
+    // even with network access or `default_tools_approval_mode=auto`. Only
+    // `danger-full-access` + `approval_policy=never` lets `delegate` through
+    // (verified against codex 0.144.1), so a delegating run must run unsandboxed.
     let codexOptions;
     let sandboxModeForRun = sandboxMode;
     let approvalPolicyForRun = approvalPolicy;
@@ -284,9 +289,7 @@ export async function queryCodex(command, options = {}, ws) {
         }
         codexOptions = { config };
         approvalPolicyForRun = 'never';
-        if (sandboxModeForRun === 'read-only') {
-          sandboxModeForRun = 'workspace-write';
-        }
+        sandboxModeForRun = 'danger-full-access';
       }
     }
 
