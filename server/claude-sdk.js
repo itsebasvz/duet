@@ -31,6 +31,7 @@ import {
 } from './services/notification-orchestrator.js';
 import { sessionsService } from './modules/providers/services/sessions.service.js';
 import { providerAuthService } from './modules/providers/services/provider-auth.service.js';
+import { buildDuetMcpServer, DUET_SYSTEM_PROMPT_APPEND } from './modules/delegation/index.js';
 import { createCompleteMessage, createNormalizedMessage } from './shared/utils.js';
 
 const activeSessions = new Map();
@@ -492,6 +493,26 @@ async function queryClaudeSDK(command, options = {}, ws) {
     const mcpServers = await loadMcpConfig(options.cwd);
     if (mcpServers) {
       sdkOptions.mcpServers = mcpServers;
+    }
+
+    // duet orchestration (v0.3): expose the in-process `delegate` tool and append
+    // the orchestrator system prompt. Gated so default runs are byte-for-byte
+    // unchanged; the frames it emits drive the 📤/📥 exchange cards in the chat.
+    if (process.env.DUET_DELEGATION === '1') {
+      const duetServer = buildDuetMcpServer({
+        getSessionId: () => capturedSessionId || sessionId || null,
+        defaultCwd: options.cwd,
+        send: (frame) => ws.send(createNormalizedMessage(frame)),
+      });
+      sdkOptions.mcpServers = { ...(sdkOptions.mcpServers || {}), duet: duetServer };
+      if (!sdkOptions.allowedTools.includes('mcp__duet__delegate')) {
+        sdkOptions.allowedTools.push('mcp__duet__delegate');
+      }
+      sdkOptions.systemPrompt = {
+        type: 'preset',
+        preset: 'claude_code',
+        append: DUET_SYSTEM_PROMPT_APPEND,
+      };
     }
 
     // Turns with image attachments switch to streaming input so the images

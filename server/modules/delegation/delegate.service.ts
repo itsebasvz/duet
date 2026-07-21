@@ -1,0 +1,119 @@
+/**
+ * The `delegate` tool — the heart of duet orchestration.
+ *
+ * Exposed to the orchestrator (Claude) as an in-process SDK MCP tool
+ * (`mcp__duet__delegate`). When Claude calls it, the handler records the
+ * exchange, spawns the worker CLI against its driver contract, supervises the
+ * process, and returns the worker's output as the tool result — so the whole
+ * hand-off happens inside the same orchestrator turn.
+ *
+ * Transport-agnostic on purpose: the caller passes a `send(frame)` callback, so
+ * this module never imports the WebSocket/normalized-message layer. claude-sdk
+ * wraps each frame for the client (the 📤/📥 exchange cards).
+ */
+
+import { createSdkMcpServer, tool } from '@anthropic-ai/claude-agent-sdk';
+import { z } from 'zod';
+
+import { delegationExchangesDb } from '@/modules/database/index.js';
+import type { DelegationExchangeRow } from '@/modules/database/index.js';
+import { hermesDriver, invokeWorker } from '@/modules/worker-feed/index.js';
+
+/** A live delegation event pushed to the client for a single exchange. */
+export type DelegationFrame = {
+  kind: 'delegation';
+  provider: 'claude';
+  /** Orchestrator session this exchange belongs to. */
+  sessionId: string;
+  /** Lifecycle stage: brief sent → worker running → final result. */
+  event: 'brief' | 'running' | 'result';
+  exchange: DelegationExchangeRow;
+};
+
+/** Everything the tool needs from the live orchestrator run. */
+export type DelegateContext = {
+  /** The orchestrator session id, resolved lazily (set once Claude announces it). */
+  getSessionId: () => string | null;
+  /** Working directory used when the brief omits `cwd`. */
+  defaultCwd?: string;
+  /** Pushes an exchange frame to the client. */
+  send: (frame: DelegationFrame) => void;
+};
+
+function textResult(text: string, isError = false) {
+  return { content: [{ type: 'text' as const, text }], isError };
+}
+
+/**
+ * Builds the in-process `duet` MCP server exposing the `delegate` tool, bound to
+ * one orchestrator run via `ctx`.
+ */
+export function buildDuetMcpServer(ctx: DelegateContext) {
+  const delegate = tool(
+    'delegate',
+    'Hand a self-contained task to the worker CLI, which executes it in its own ' +
+      'process and returns the result. The worker does NOT see this conversation, ' +
+      'so the brief must be fully self-contained (goal, paths, constraints, ' +
+      'definition of done). Use for hands-on execution; keep planning and review ' +
+      'to yourself.',
+    {
+      brief: z
+        .string()
+        .min(1)
+        .describe('Self-contained task for the worker: goal, relevant paths, constraints, what "done" means.'),
+      cwd: z
+        .string()
+        .optional()
+        .describe('Absolute working directory the worker runs in. Defaults to the orchestrator cwd.'),
+    },
+    async (args) => {
+      const claudeSessionId = ctx.getSessionId();
+      if (!claudeSessionId) {
+        return textResult('La sesión del orquestador aún no está lista; reintenta la delegación.', true);
+      }
+
+      const cwd = args.cwd ?? ctx.defaultCwd ?? process.cwd();
+      const id = delegationExchangesDb.create({
+        claudeSessionId,
+        workerDriverId: hermesDriver.id,
+        brief: args.brief,
+        cwd,
+      });
+
+      const emit = (event: DelegationFrame['event']) => {
+        const exchange = delegationExchangesDb.getById(id);
+        if (exchange) {
+          ctx.send({ kind: 'delegation', provider: 'claude', sessionId: claudeSessionId, event, exchange });
+        }
+      };
+
+      emit('brief');
+
+      const result = await invokeWorker({
+        brief: args.brief,
+        cwd,
+        driver: hermesDriver,
+        onSessionId: (workerSessionId) => {
+          delegationExchangesDb.markRunning(id, workerSessionId);
+          emit('running');
+        },
+      });
+
+      if (result.status === 'done') {
+        delegationExchangesDb.markDone(id, {
+          resultText: result.resultText,
+          exitCode: result.exitCode,
+        });
+        emit('result');
+        return textResult(result.resultText || '(el worker terminó sin producir salida)');
+      }
+
+      const errorMessage = result.errorMessage ?? 'El worker falló sin un mensaje de error.';
+      delegationExchangesDb.markError(id, { errorMessage, exitCode: result.exitCode });
+      emit('result');
+      return textResult(`El worker falló: ${errorMessage}`, true);
+    },
+  );
+
+  return createSdkMcpServer({ name: 'duet', version: '0.3.0', tools: [delegate] });
+}
