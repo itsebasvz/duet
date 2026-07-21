@@ -31,7 +31,7 @@ import {
 } from './services/notification-orchestrator.js';
 import { sessionsService } from './modules/providers/services/sessions.service.js';
 import { providerAuthService } from './modules/providers/services/provider-auth.service.js';
-import { buildDuetMcpServer, DUET_SYSTEM_PROMPT_APPEND } from './modules/delegation/index.js';
+import { resolveOrchestrator } from './modules/delegation/index.js';
 import { createCompleteMessage, createNormalizedMessage } from './shared/utils.js';
 
 const activeSessions = new Map();
@@ -462,6 +462,7 @@ async function queryClaudeSDK(command, options = {}, ws) {
   const { sessionId, sessionSummary } = options;
   let capturedSessionId = sessionId;
   let sessionCreatedSent = false;
+  let duetLaunch = null;
 
   const emitNotification = (event) => {
     notifyUserIfEnabled({
@@ -495,26 +496,33 @@ async function queryClaudeSDK(command, options = {}, ws) {
       sdkOptions.mcpServers = mcpServers;
     }
 
-    // duet orchestration (v0.3): expose the in-process `delegate` tool and append
-    // the orchestrator system prompt. Gated so default runs are byte-for-byte
-    // unchanged; the frames it emits drive the 📤/📥 exchange cards in the chat.
+    // duet orchestration (v0.3): wire the `delegate` tool and the orchestrator
+    // framing through the provider-neutral orchestrator seam. Gated so default
+    // runs are byte-for-byte unchanged; the frames it emits drive the 📤/📥
+    // exchange cards in the chat. Claude's launch is in-process (no HTTP token),
+    // so `dispose` is a no-op — but it is still called in `finally`.
     if (process.env.DUET_DELEGATION === '1') {
-      const duetServer = buildDuetMcpServer({
-        getSessionId: () => capturedSessionId || sessionId || null,
-        defaultCwd: options.cwd,
-        // Stable id per exchange so the brief/running/result frames update one
-        // card in place instead of stacking three.
-        send: (frame) => ws.send(createNormalizedMessage({ ...frame, id: `delegation_${frame.exchange.id}` })),
-      });
-      sdkOptions.mcpServers = { ...(sdkOptions.mcpServers || {}), duet: duetServer };
-      if (!sdkOptions.allowedTools.includes('mcp__duet__delegate')) {
-        sdkOptions.allowedTools.push('mcp__duet__delegate');
+      const orchestrator = resolveOrchestrator('claude');
+      if (orchestrator) {
+        duetLaunch = orchestrator.buildLaunch({
+          getSessionId: () => capturedSessionId || sessionId || null,
+          cwd: options.cwd,
+          // Stable id per exchange so the brief/running/result frames update one
+          // card in place instead of stacking three.
+          send: (frame) => ws.send(createNormalizedMessage({ ...frame, id: `delegation_${frame.exchange.id}` })),
+        });
+        if (duetLaunch.mcp.transport === 'in-process') {
+          sdkOptions.mcpServers = { ...(sdkOptions.mcpServers || {}), duet: duetLaunch.mcp.server };
+          if (!sdkOptions.allowedTools.includes(duetLaunch.mcp.allowedTool)) {
+            sdkOptions.allowedTools.push(duetLaunch.mcp.allowedTool);
+          }
+        }
+        sdkOptions.systemPrompt = {
+          type: 'preset',
+          preset: 'claude_code',
+          append: duetLaunch.systemPromptAppend,
+        };
       }
-      sdkOptions.systemPrompt = {
-        type: 'preset',
-        preset: 'claude_code',
-        append: DUET_SYSTEM_PROMPT_APPEND,
-      };
     }
 
     // Turns with image attachments switch to streaming input so the images
@@ -748,6 +756,11 @@ async function queryClaudeSDK(command, options = {}, ws) {
       sessionName: sessionSummary,
       error
     });
+  } finally {
+    // Revoke the run's delegation token / clean managed files. No-op for Claude
+    // (in-process), but the seam every provider shares — runs on success, error,
+    // and the abort `return` above.
+    duetLaunch?.dispose();
   }
 }
 
