@@ -263,12 +263,13 @@ export async function queryCodex(command, options = {}, ws) {
     // loopback MCP HTTP endpoint (token in the URL path), so we inject the server
     // via `new Codex({ config: { mcp_servers } })`. MCP tool calls are cancelled
     // under a read-only sandbox, so force a writable sandbox + no approval prompt
-    // (see U0 gotcha). CODEX_HOME is untouched to preserve the user's auth, so the
-    // duet framing rides in on the first turn of a fresh thread only.
+    // (see U0 gotcha). CODEX_HOME is untouched to preserve the user's auth; the
+    // duet framing rides on Codex's `developer_instructions` channel rather than
+    // the user turn — prepending it to the prompt would persist it in the session
+    // rollout and render it as the user's own message in the UI.
     let codexOptions;
     let sandboxModeForRun = sandboxMode;
     let approvalPolicyForRun = approvalPolicy;
-    let duetFraming = null;
     if (process.env.DUET_DELEGATION === '1') {
       const orchestrator = resolveOrchestrator('codex');
       if (orchestrator) {
@@ -277,15 +278,14 @@ export async function queryCodex(command, options = {}, ws) {
           cwd: workingDirectory,
           send: (frame) => sendMessage(ws, createNormalizedMessage({ ...frame, id: `delegation_${frame.exchange.id}` })),
         });
+        const config = { developer_instructions: duetLaunch.systemPromptAppend };
         if (duetLaunch.mcp.transport === 'http') {
-          codexOptions = { config: { mcp_servers: { duet: { url: duetLaunch.mcp.url } } } };
+          config.mcp_servers = { duet: { url: duetLaunch.mcp.url } };
         }
+        codexOptions = { config };
         approvalPolicyForRun = 'never';
         if (sandboxModeForRun === 'read-only') {
           sandboxModeForRun = 'workspace-write';
-        }
-        if (!sessionId) {
-          duetFraming = duetLaunch.systemPromptAppend;
         }
       }
     }
@@ -325,14 +325,10 @@ export async function queryCodex(command, options = {}, ws) {
     }
 
     // Execute with streaming. Turns with image attachments send structured
-    // input items so Codex reads the images from their local asset paths. When
-    // duet framing is present (fresh thread only), it prepends the first turn.
-    const effectiveCommand = duetFraming
-      ? `${duetFraming}\n\n---\nThe user's message follows.\n---\n${command}`
-      : command;
+    // input items so Codex reads the images from their local asset paths.
     const turnInput = normalizeImageDescriptors(images).length > 0
-      ? buildCodexInputItems(effectiveCommand, images, workingDirectory)
-      : effectiveCommand;
+      ? buildCodexInputItems(command, images, workingDirectory)
+      : command;
     const streamedTurn = await thread.runStreamed(turnInput, {
       signal: abortController.signal
     });
