@@ -1,5 +1,38 @@
 # Known issues
 
+## Orquestador Cursor: sin canal no-invasivo para system prompt + MCP
+
+**Status:** deferred — apartado a favor de Codex + OpenCode
+(ver [PLAN-universal-orchestrator.md](PLAN-universal-orchestrator.md)).
+
+**Problema.** Para que Cursor (`cursor-agent`, `server/cursor-cli.js:31`) sea
+orquestador duet hay que inyectarle dos cosas por-run: el system prompt duet y el
+MCP `delegate`. Cursor no ofrece canal limpio para ninguna:
+
+- **System prompt:** sin flag. Solo por archivo leído del cwd — `AGENTS.md`,
+  `CLAUDE.md` o `.cursor/rules/*.md`.
+- **MCP:** sin flag per-invocación. Solo por archivo — `.cursor/mcp.json` (en el
+  cwd) o `~/.cursor/mcp.json` (global, persistente).
+
+Ambas vías obligan a **escribir dentro del repo del usuario** (invasivo: deja
+basura, colisiona con reglas reales del proyecto) o a **mutar la config global**
+(siempre-on, se filtra a usos de Cursor ajenos a duet).
+
+**Fricciones extra.** Sin flags per-invocación para MCP; reportes de `-p`/print
+colgándose; `--resume` cuyo id hay que validar empíricamente contra el
+`session_id` emitido; en headless exige `--trust` y `--approve-mcps` para no
+bloquear.
+
+**Alternativas a explorar.**
+- cwd gestionado (espejo/symlink del repo real) donde sí es seguro escribir
+  `AGENTS.md` + `.cursor/mcp.json`, en vez del repo del usuario.
+- config global toggled por env con cleanup determinista post-run.
+- esperar soporte de flags per-invocación (system prompt / MCP) en el CLI.
+
+**Decisión 2026-07-21.** Apartar Cursor como orquestador; enfocar Codex +
+OpenCode (que sí tienen inyección por config-file no-invasiva). Reevaluar cuando
+el CLI de Cursor ofrezca inyección per-invocación.
+
 ## Worker: `HTTP 400 Upstream request failed` (Kimi via Console Go)
 
 **Status:** open — worked around by preferring Minimax as the worker model.
