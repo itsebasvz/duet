@@ -3,6 +3,11 @@ export { closeConnection, getConnection, getDatabasePath } from '@/modules/datab
 export { apiKeysDb } from '@/modules/database/repositories/api-keys.js';
 export { appConfigDb } from '@/modules/database/repositories/app-config.js';
 export { credentialsDb } from '@/modules/database/repositories/credentials.js';
+export { delegationExchangesDb } from '@/modules/database/repositories/delegation-exchanges.js';
+export type {
+  DelegationExchangeRow,
+  DelegationStatus,
+} from '@/modules/database/repositories/delegation-exchanges.js';
 export { githubTokensDb } from '@/modules/database/repositories/github-tokens.js';
 export { notificationChannelEndpointsDb } from '@/modules/database/repositories/notification-channel-endpoints.js';
 export { notificationPreferencesDb } from '@/modules/database/repositories/notification-preferences.js';

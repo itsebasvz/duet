@@ -134,6 +134,31 @@ CREATE TABLE IF NOT EXISTS app_config (
 );
 `;
 
+// One delegation exchange = one brief the orchestrator (Claude) handed to a
+// worker CLI + the worker's response. The row pairs the orchestrator session
+// (\`claude_session_id\`) with the worker's own session (\`worker_session_id\`,
+// filled once the worker announces it), so the duet "duo" for a turn is this
+// row. Provider-level worker errors never reach the worker store, so
+// \`error_message\`/\`exit_code\` come from process supervision (see driver
+// contract).
+export const DELEGATION_EXCHANGES_TABLE_SCHEMA_SQL = `
+CREATE TABLE IF NOT EXISTS delegation_exchanges (
+    id TEXT PRIMARY KEY NOT NULL,
+    claude_session_id TEXT NOT NULL,
+    worker_driver_id TEXT NOT NULL,
+    worker_session_id TEXT,
+    cwd TEXT,
+    brief TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'pending', -- pending | running | done | error
+    result_text TEXT,
+    error_message TEXT,
+    exit_code INTEGER,
+    cost_usd REAL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+`;
+
 export const INIT_SCHEMA_SQL = `
 -- Initialize authentication database
 PRAGMA foreign_keys = ON;
@@ -177,4 +202,8 @@ CREATE INDEX IF NOT EXISTS idx_session_ids_lookup ON sessions(session_id);
 ${LAST_SCANNED_AT_SQL}
 
 ${APP_CONFIG_TABLE_SCHEMA_SQL}
+
+${DELEGATION_EXCHANGES_TABLE_SCHEMA_SQL}
+CREATE INDEX IF NOT EXISTS idx_delegation_exchanges_session ON delegation_exchanges(claude_session_id);
+CREATE INDEX IF NOT EXISTS idx_delegation_exchanges_status ON delegation_exchanges(status);
 `;
