@@ -32,3 +32,11 @@ const DEFAULT_DATABASE_PATH = path.join(os.homedir(), '.cloudcli', 'auth.db');
 if (!process.env.DATABASE_PATH) {
   process.env.DATABASE_PATH = DEFAULT_DATABASE_PATH;
 }
+
+// Read-only path to the worker CLI (Hermes) session store that feeds the live
+// worker-activity panel. Duet only ever opens this file read-only.
+const DEFAULT_HERMES_STATE_DB = path.join(os.homedir(), '.hermes', 'state.db');
+
+if (!process.env.HERMES_STATE_DB) {
+  process.env.HERMES_STATE_DB = DEFAULT_HERMES_STATE_DB;
+}
