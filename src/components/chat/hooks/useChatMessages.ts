@@ -3,7 +3,7 @@
  * Converts NormalizedMessage[] from the session store into ChatMessage[] for the UI.
  */
 
-import type { NormalizedMessage } from '../../../stores/useSessionStore';
+import type { DelegationExchange, NormalizedMessage } from '../../../stores/useSessionStore';
 import type { ChatMessage, SubagentChildTool } from '../types/types';
 import { decodeHtmlEntities, unescapeWithMathProtection, formatUsageLimitText } from '../utils/chatFormatting';
 
@@ -63,12 +63,20 @@ function parseTaskNotification(content: string): ParsedTaskNotification | null {
  * transcript artifacts such as local slash commands and compact summaries are
  * intentionally preserved and annotated so they can render like normal chat.
  */
-export function normalizedToChatMessages(messages: NormalizedMessage[]): ChatMessage[] {
+export function normalizedToChatMessages(
+  messages: NormalizedMessage[],
+  delegationExchanges: DelegationExchange[] = [],
+): ChatMessage[] {
   const converted: ChatMessage[] = [];
 
   // First pass: collect tool results for attachment
   const toolResultMap = new Map<string, NormalizedMessage>();
   const toolUseIds = new Set<string>();
+  // Briefs already rendered by a live delegation WS frame in this stream. On
+  // reload there are none (frames are memory-only), so persisted exchanges take
+  // over; during a live run the frame wins and we skip the persisted copy to
+  // avoid a doubled card.
+  const liveDelegationBriefs = new Set<string>();
   for (const msg of messages) {
     if (msg.kind === 'tool_use' && msg.toolId) {
       toolUseIds.add(msg.toolId);
@@ -77,7 +85,15 @@ export function normalizedToChatMessages(messages: NormalizedMessage[]): ChatMes
     if (msg.kind === 'tool_result' && msg.toolId) {
       toolResultMap.set(msg.toolId, msg);
     }
+
+    if (msg.kind === 'delegation' && msg.exchange) {
+      liveDelegationBriefs.add(msg.exchange.brief);
+    }
   }
+
+  // The nth `mcp__duet__delegate` tool call maps to the nth persisted exchange:
+  // both are chronological and every delegate call writes exactly one row.
+  let delegateIdx = 0;
 
   for (const msg of messages) {
     const sharedMetadata = {
@@ -142,6 +158,37 @@ export function normalizedToChatMessages(messages: NormalizedMessage[]): ChatMes
       }
 
       case 'tool_use': {
+        // A duet delegation persists as a raw `mcp__duet__delegate` tool_use in
+        // the transcript. Render it as the rich DelegationCard from the persisted
+        // exchange so worker activity + result survive a reload — never as the
+        // raw tool card. If a live WS frame already covers this brief, defer to
+        // it (skip here) to avoid a doubled card in the just-completed window.
+        if (msg.toolName === 'mcp__duet__delegate') {
+          const exchange = delegationExchanges[delegateIdx];
+          delegateIdx += 1;
+          if (exchange && liveDelegationBriefs.has(exchange.brief)) {
+            break; // live frame renders it
+          }
+          if (exchange) {
+            converted.push({
+              type: 'delegation',
+              timestamp: msg.timestamp,
+              isDelegation: true,
+              delegationExchange: exchange,
+            });
+            break;
+          }
+          // No persisted exchange available yet: if a live frame covers it,
+          // let the frame render; otherwise fall through to the raw tool card.
+          const inputBrief =
+            msg.toolInput && typeof msg.toolInput === 'object'
+              ? (msg.toolInput as { brief?: unknown }).brief
+              : undefined;
+          if (typeof inputBrief === 'string' && liveDelegationBriefs.has(inputBrief)) {
+            break;
+          }
+        }
+
         const tr = msg.toolResult || (msg.toolId ? toolResultMap.get(msg.toolId) : null);
         const isSubagentContainer = msg.toolName === 'Task';
 

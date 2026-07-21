@@ -4,7 +4,7 @@ import type { MutableRefObject } from 'react';
 import { authenticatedFetch } from '../../../utils/api';
 import type { MarkSessionIdle, SessionActivityMap } from '../../../hooks/useSessionProtection';
 import type { Project, ProjectSession, LLMProvider } from '../../../types/app';
-import type { SessionStore, NormalizedMessage } from '../../../stores/useSessionStore';
+import type { SessionStore, NormalizedMessage, DelegationExchange } from '../../../stores/useSessionStore';
 import type { ChatMessage } from '../types/types';
 import { createCachedDiffCalculator, type DiffCalculator } from '../utils/messageTransforms';
 
@@ -269,15 +269,52 @@ export function useChatSessionState({
     if (viewHiddenCount > 0) setViewHiddenCount(0);
   }
 
+  // Persisted delegation exchanges for this session. Live worker cards render
+  // from memory-only WS frames; on a full reload those are gone, so we hydrate
+  // the DelegationCards from the DB instead (worker activity + result persist).
+  // Refetch when the count of delegations in the stream grows so a freshly
+  // completed delegation's persisted row is available before the next reload.
+  const [delegationExchanges, setDelegationExchanges] = useState<DelegationExchange[]>([]);
+  const delegationCount = useMemo(
+    () =>
+      storeMessages.reduce(
+        (n, m) =>
+          n + (m.kind === 'delegation' || (m.kind === 'tool_use' && m.toolName === 'mcp__duet__delegate') ? 1 : 0),
+        0,
+      ),
+    [storeMessages],
+  );
+  useEffect(() => {
+    if (!activeSessionId) {
+      setDelegationExchanges([]);
+      return;
+    }
+    let cancelled = false;
+    const url = `/api/providers/sessions/${encodeURIComponent(activeSessionId)}/delegations`;
+    authenticatedFetch(url)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((body) => {
+        if (cancelled) return;
+        const list = (body?.data ?? body)?.exchanges;
+        setDelegationExchanges(Array.isArray(list) ? list : []);
+      })
+      .catch(() => {
+        if (!cancelled) setDelegationExchanges([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [activeSessionId, delegationCount]);
+
   const chatMessages = useMemo(() => {
-    const all = normalizedToChatMessages(storeMessages);
+    const all = normalizedToChatMessages(storeMessages, delegationExchanges);
     // Show pending user message when no session data exists yet (new session, pre-backend-response)
     if (pendingUserMessage && all.length === 0) {
       return [pendingUserMessage];
     }
     if (viewHiddenCount > 0 && viewHiddenCount < all.length) return all.slice(0, -viewHiddenCount);
     return all;
-  }, [storeMessages, viewHiddenCount, pendingUserMessage]);
+  }, [storeMessages, viewHiddenCount, pendingUserMessage, delegationExchanges]);
 
   /* ---------------------------------------------------------------- */
   /*  addMessage / clearMessages / rewindMessages                     */

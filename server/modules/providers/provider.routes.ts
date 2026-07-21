@@ -7,6 +7,7 @@ import { providerModelsService } from '@/modules/providers/services/provider-mod
 import { providerSkillsService } from '@/modules/providers/services/skills.service.js';
 import { sessionConversationsSearchService } from '@/modules/providers/services/session-conversations-search.service.js';
 import { sessionsService } from '@/modules/providers/services/sessions.service.js';
+import { delegationExchangesDb } from '@/modules/database/index.js';
 import type {
   LLMProvider,
   McpScope,
@@ -625,6 +626,17 @@ router.get(
       offset,
     });
     res.json(createApiSuccessResponse(result));
+  }),
+);
+
+// Persisted delegation exchanges for an orchestrator session, so worker
+// activity + results survive a full page reload (live WS frames are memory-only).
+router.get(
+  '/sessions/:sessionId/delegations',
+  asyncHandler(async (req: Request, res: Response) => {
+    const sessionId = parseSessionId(req.params.sessionId);
+    const exchanges = delegationExchangesDb.listBySession(sessionId);
+    res.json(createApiSuccessResponse({ exchanges }));
   }),
 );
 
