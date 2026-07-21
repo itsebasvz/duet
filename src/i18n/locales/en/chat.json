@@ -4,6 +4,7 @@
     "running": "Worker executing…",
     "result": "Worker result",
     "workerSession": "Worker session",
+    "workerActivity": "Worker activity · {{count}} steps",
     "emptyResult": "(no output)",
     "exit": "exit {{code}}",
     "status_pending": "queued",

@@ -14,6 +14,8 @@ interface BashCommandDisplayProps {
   isError?: boolean;
   status?: ToolStatus;
   defaultOpen?: boolean;
+  /** Agent voice: 'default' = Claude (emerald), 'worker' = Hermes (Ochre). */
+  accent?: 'default' | 'worker';
 }
 
 /**
@@ -30,7 +32,10 @@ export const BashCommandDisplay: React.FC<BashCommandDisplayProps> = ({
   isError = false,
   status,
   defaultOpen = false,
+  accent = 'default',
 }) => {
+  const accentText = accent === 'worker' ? 'text-worker' : 'text-emerald-500 dark:text-emerald-400';
+  const accentSpinner = accent === 'worker' ? 'border-t-worker' : 'border-t-emerald-400';
   const trimmedOutput = (output || '').replace(/\s+$/, '');
   const hasOutput = trimmedOutput.length > 0;
   const outputLineCount = hasOutput ? trimmedOutput.split('\n').length : 0;
@@ -96,7 +101,7 @@ export const BashCommandDisplay: React.FC<BashCommandDisplayProps> = ({
             !hasOutput && 'opacity-0',
           )}
         />
-        <span className="flex-shrink-0 select-none font-mono text-xs font-semibold text-emerald-500 dark:text-emerald-400">
+        <span className={cn('flex-shrink-0 select-none font-mono text-xs font-semibold', accentText)}>
           $
         </span>
         <code
@@ -109,7 +114,7 @@ export const BashCommandDisplay: React.FC<BashCommandDisplayProps> = ({
         </code>
 
         {isRunning && (
-          <span className="h-2.5 w-2.5 flex-shrink-0 animate-spin rounded-full border-[1.5px] border-muted-foreground/30 border-t-emerald-400" />
+          <span className={cn('h-2.5 w-2.5 flex-shrink-0 animate-spin rounded-full border-[1.5px] border-muted-foreground/30', accentSpinner)} />
         )}
         {status && status !== 'running' && <ToolStatusBadge status={status} className="flex-shrink-0" />}
         {!open && hasOutput && !isRunning && (
@@ -125,7 +130,7 @@ export const BashCommandDisplay: React.FC<BashCommandDisplayProps> = ({
           title="Copy command"
           aria-label="Copy command"
         >
-          {copied ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5" />}
+          {copied ? <Check className={cn('h-3.5 w-3.5', accentText)} /> : <Copy className="h-3.5 w-3.5" />}
         </button>
       </div>
 

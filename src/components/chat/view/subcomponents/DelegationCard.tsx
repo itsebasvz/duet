@@ -2,6 +2,7 @@ import { AlertTriangle, FolderGit2, Inbox, Loader2, Send } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import type { DelegationExchange } from '../../../../stores/useSessionStore';
+import WorkerActivity from './WorkerActivity';
 
 function StatusBadge({ status }: { status: DelegationExchange['status'] }) {
   const { t } = useTranslation('chat');
@@ -61,12 +62,21 @@ export default function DelegationCard({ exchange }: { exchange: DelegationExcha
         </div>
       </div>
 
-      {/* Worker still executing */}
-      {isRunning && (
+      {/* Brief sent, worker not yet spawned (no session id to tail) */}
+      {isRunning && !exchange.worker_session_id && (
         <div className="flex items-center gap-1.5 px-1 text-[12px] text-muted-foreground">
           <Loader2 className="h-3 w-3 animate-spin text-worker" />
           {t('delegation.running')}
         </div>
+      )}
+
+      {/* Live worker tool-calling (tails while running, collapsed trace after) */}
+      {exchange.worker_session_id && (
+        <WorkerActivity
+          workerSessionId={exchange.worker_session_id}
+          running={isRunning}
+          createdAt={exchange.created_at}
+        />
       )}
 
       {/* Worker result */}
